@@ -374,9 +374,15 @@ namespace TDMUtils
         /// <param name="stopwatch">The source Stopwatch Object</param>
         /// <param name="CodeTimed">Description of the code being timed</param>
         /// <param name="Action">The action to perform 0 = Start the stopwatch, 1 = Print Time and Restart, 2 = Print Time and stop timer</param>
-        public static void TimeCodeExecution(Stopwatch stopwatch, string CodeTimed = "", int Action = 0)
+        public enum StopwatchAction
         {
-            if (Action == 0)
+            start,
+            stop,
+            reset
+        }
+        public static void TimeCodeExecution(Stopwatch stopwatch, string CodeTimed = "", StopwatchAction Action = 0)
+        {
+            if (Action == StopwatchAction.start)
             {
                 stopwatch.Start();
             }
@@ -385,7 +391,7 @@ namespace TDMUtils
                 Debug.WriteLine($"{CodeTimed} took {stopwatch.ElapsedMilliseconds} m/s");
                 stopwatch.Stop();
                 stopwatch.Reset();
-                if (Action == 1) { stopwatch.Start(); }
+                if (Action == StopwatchAction.reset) { stopwatch.Start(); }
             }
         }
         /// <summary>
