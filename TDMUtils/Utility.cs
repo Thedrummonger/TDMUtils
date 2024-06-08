@@ -11,10 +11,7 @@ namespace TDMUtils
 {
     public static class Utility
     {
-        public static T DeepClone<T>(this T obj)
-        {
-            return obj.SerializeConvert <T>();
-        }
+        public static T DeepClone<T>(this T obj) => obj.SerializeConvert<T>();
         /// <summary>
         /// Replaces a range of text in a string with a replacement string
         /// </summary>
@@ -31,6 +28,8 @@ namespace TDMUtils
             builder.Append(s[(index + length)..]);
             return builder.ToString();
         }
+        public static bool IsNullOrWhiteSpace(this string s) => string.IsNullOrWhiteSpace(s);
+        public static bool IsNullOrEmpty(this string s) => string.IsNullOrEmpty(s);
         /// <summary>
         /// Splits a string by a substring and trims all the resulting substrings
         /// </summary>
@@ -38,10 +37,7 @@ namespace TDMUtils
         /// <param name="Val">The substring to split on</param>
         /// <returns></returns>
         /// 
-        public static string[] SplitAtNewLine(this string s)
-        {
-            return s.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        }
+        public static string[] SplitAtNewLine(this string s) => s.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
         /// <summary>
         /// Splits a string and trims the values
         /// </summary>
@@ -49,10 +45,7 @@ namespace TDMUtils
         /// <param name="Val">The substring to split on</param>
         /// <returns></returns>
         /// 
-        public static string[] TrimSplit(this string s, string Val)
-        {
-            return s.Split(Val).Select(x => x.Trim()).ToArray();
-        }
+        public static string[] TrimSplit(this string s, string Val) => s.Split(Val).Select(x => x.Trim()).ToArray();
         /// <summary>
         /// Gets a value from a dictionary at the given key and casts it to the given type
         /// </summary>
@@ -82,19 +75,13 @@ namespace TDMUtils
         /// </summary>
         /// <typeparam name="T">The Enum as a type</typeparam>
         /// <returns>An array of <Enum></returns>
-        public static IEnumerable<T> EnumAsArray<T>()
-        {
-            return Enum.GetValues(typeof(T)).Cast<T>().ToArray();
-        }
+        public static IEnumerable<T> EnumAsArray<T>() => Enum.GetValues(typeof(T)).Cast<T>().ToArray();
         /// <summary>
         /// Creates an array containing the values of the given Enum as strings
         /// </summary>
         /// <typeparam name="T">The Enum as a type</typeparam>
         /// <returns>An array of <string></returns>
-        public static IEnumerable<string> EnumAsStringArray<T>()
-        {
-            return EnumAsArray<T>().Select(x => x.ToString()).ToArray();
-        }
+        public static IEnumerable<string> EnumAsStringArray<T>() => EnumAsArray<T>().Select(x => x.ToString()).ToArray();
         /// <summary>
         /// Splits a string by the first occurrence of the given char
         /// </summary>
@@ -117,10 +104,7 @@ namespace TDMUtils
         /// <param name="obj">The object to check</param>
         /// <param name="args">The list of objects that may contain the given object</param>
         /// <returns></returns>
-        public static bool In<T>(this T obj, params T[] args)
-        {
-            return args.Contains(obj);
-        }
+        public static bool In<T>(this T obj, params T[] args) => args.Contains(obj);
         /// <summary>
         /// Gets the values from a list in a certain range
         /// </summary>
@@ -155,10 +139,7 @@ namespace TDMUtils
         /// </summary>
         /// <param name="myString">String to trim</param>
         /// <returns></returns>
-        public static string TrimSpaces(this string myString)
-        {
-            return Regex.Replace(myString, @"\s+", " ");
-        }
+        public static string TrimSpaces(this string myString) => Regex.Replace(myString, @"\s+", " ");
         /// <summary>
         /// Converts a string representing a version to a version object
         /// </summary>
@@ -176,10 +157,7 @@ namespace TDMUtils
         /// <typeparam name="T">Type of object the list contains</typeparam>
         /// <param name="source">Source List</param>
         /// <returns></returns>
-        public static T PickRandom<T>(this IEnumerable<T> source)
-        {
-            return source.PickRandom(1).Single();
-        }
+        public static T PickRandom<T>(this IEnumerable<T> source) => source.PickRandom(1).Single();
         /// <summary>
         /// If the given key is not present in the dictionary, add the given value at the given key
         /// </summary>
@@ -199,20 +177,14 @@ namespace TDMUtils
         /// <param name="source">The source list</param>
         /// <param name="count">The amount of items to take</param>
         /// <returns></returns>
-        public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count)
-        {
-            return source.Shuffle().Take(count);
-        }
+        public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count) => source.Shuffle().Take(count);
         /// <summary>
         /// Shuffles an collection
         /// </summary>
         /// <typeparam name="T">Type of objects in the collection</typeparam>
         /// <param name="source">Source collection</param>
         /// <returns></returns>
-        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
-        {
-            return source.OrderBy(x => Guid.NewGuid());
-        }
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source) => source.OrderBy(x => Guid.NewGuid());
         /// <summary>
         /// Serialized the given object and prints it to the debug window
         /// </summary>
@@ -226,10 +198,7 @@ namespace TDMUtils
         /// </summary>
         /// <param name="o">The source object</param>
         /// <returns>The serialized object</returns>
-        public static string ToFormattedJson(this object o)
-        {
-            return JsonConvert.SerializeObject(o, NewtonsoftExtensions.DefaultSerializerSettings);
-        }
+        public static string ToFormattedJson(this object o) => JsonConvert.SerializeObject(o, NewtonsoftExtensions.DefaultSerializerSettings);
 
         public static string ToYamlString(this object e)
         {
