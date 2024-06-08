@@ -299,7 +299,12 @@ namespace TDMUtils
             }
             if (FileError && WriteDefaultToFileIfError)
             {
-                File.WriteAllText(FilePath, result.ToFormattedJson());
+                if (Path.GetExtension(FilePath).ToLower().In(".json", ".txt")) { File.WriteAllText(FilePath, result.ToFormattedJson()); }
+                else if (Path.GetExtension(FilePath).ToLower().In(".yaml")) { File.WriteAllText(FilePath, result.ToYamlString()); }
+                else
+                {
+                    Debug.WriteLine($"Failed to write default to file {FilePath} {Path.GetExtension(FilePath)} Was not supported");
+                }
             }
             return result;
         }
