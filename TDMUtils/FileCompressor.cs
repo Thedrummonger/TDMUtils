@@ -93,14 +93,14 @@ namespace TDMUtils
 
         private static bool TestForUncompressedFile<T>(string FileContent)
         {
-            return Utility.isJsonTypeOf<T>(FileContent);
+            return MiscUtilities.isJsonTypeOf<T>(FileContent);
         }
         private static bool TestForCompressedFile<T>(string FileContent)
         {
             try
             {
                 var DecompSave = Decompress(FileContent);
-                return Utility.isJsonTypeOf<T>(DecompSave);
+                return MiscUtilities.isJsonTypeOf<T>(DecompSave);
             }
             catch
             {
@@ -112,7 +112,7 @@ namespace TDMUtils
             try
             {
                 var DecompSave = Decompress(FileContent);
-                return Utility.isJsonTypeOf<T>(DecompSave);
+                return MiscUtilities.isJsonTypeOf<T>(DecompSave);
             }
             catch
             {

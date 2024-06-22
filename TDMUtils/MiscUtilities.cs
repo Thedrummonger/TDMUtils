@@ -131,7 +131,7 @@ namespace TDMUtils
         /// <returns></returns>
         public static bool OBJIsThreadSafe(Thread thread, dynamic Obj)
         {
-            bool IsWinformSafe = Obj is not null && (!Utility.DynamicPropertyExist(Obj, "IsHandleCreated") || Obj.IsHandleCreated);
+            bool IsWinformSafe = Obj is not null && (!MiscUtilities.DynamicPropertyExist(Obj, "IsHandleCreated") || Obj.IsHandleCreated);
             return thread is not null && thread.IsAlive && Obj is not null && IsWinformSafe;
         }
     }
