@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -367,7 +368,7 @@ namespace TDMUtils.Tokenizer
         /// <param name="input">The input string to tokenize.</param>
         /// <returns>A list of tokens.</returns>
         /// <exception cref="Exception">
-        /// Thrown if the input cannot be tokenized (for example, due to an unbalanced container).
+        /// Thrown if the input cannot be tokenized (for example, due to an unbalanced container or invalid operator placement).
         /// </exception>
         public List<IToken> Tokenize(string input)
         {
@@ -444,6 +445,13 @@ namespace TDMUtils.Tokenizer
                 // Check for the "and" operator.
                 if (IsMatchOperator(input, i, _config.AndOperator))
                 {
+                    // Error checking: operator cannot follow another operator.
+                    if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
+                        throw new Exception("Two logic operators in succession are not allowed.");
+                    // Error checking: operator cannot immediately follow an open container.
+                    if (tokens.Count > 0 && tokens[^1] is OpenContainerToken)
+                        throw new Exception("A logic operator cannot immediately follow an open container.");
+
                     FlushBufferAsVariableToken(buffer, tokens);
                     tokens.Add(new AndToken { Value = _config.AndOperator });
                     i += _config.AndOperator.Length;
@@ -453,6 +461,13 @@ namespace TDMUtils.Tokenizer
                 // Check for the "or" operator.
                 if (IsMatchOperator(input, i, _config.OrOperator))
                 {
+                    // Error checking: operator cannot follow another operator.
+                    if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
+                        throw new Exception("Two logic operators in succession are not allowed.");
+                    // Error checking: operator cannot immediately follow an open container.
+                    if (tokens.Count > 0 && tokens[^1] is OpenContainerToken)
+                        throw new Exception("A logic operator cannot immediately follow an open container.");
+
                     FlushBufferAsVariableToken(buffer, tokens);
                     tokens.Add(new OrToken { Value = _config.OrOperator });
                     i += _config.OrOperator.Length;
@@ -508,6 +523,9 @@ namespace TDMUtils.Tokenizer
                     }
                     else
                     {
+                        // Error checking: an open container must follow a logic operator or another open container.
+                        if (tokens.Count > 0 && !(tokens[^1] is AndToken || tokens[^1] is OrToken || tokens[^1] is OpenContainerToken))
+                            throw new Exception("An open container must follow a logic operator or another open container.");
                         FlushBufferAsVariableToken(buffer, tokens);
                         tokens.Add(new OpenContainerToken { Value = _config.OpenContainer.ToString() });
                         i++;
@@ -547,8 +565,9 @@ namespace TDMUtils.Tokenizer
                 tokens = Tokenize(input);
                 return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Debug.WriteLine($"Unable to parse line\n{input}\n{e}");
                 tokens = [];
                 return false;
             }
