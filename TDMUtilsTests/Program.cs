@@ -16,14 +16,13 @@ namespace TDMUtilsTests
         /// </summary>
         public static void Main()
         {
-            TokenizerConfig config = TokenizerConfig.NewBuilder().UseCStyle().SetModifierChars('!').Build();
+            TokenizerConfig config = TokenizerConfig.NewBuilder().UseMatlabStyle().SetModifierChars('!').Build();
             Tokenizer tokenizer = new(config);
 
-            var Test =
-                "soul_iron_knuckle && ((small_keys_spirit(7) && (has_weapon || can_use_sticks)) || " +
-                "(is_adult && small_keys_spirit(4) && has_lens && (can_play_time || can_play_elegy) && soul_floormaster))";
+            var Test ="/t|(/c&#lake)";
 
-            LogicTreeParser.IBoolExpr expr1 = LogicTreeParser.Parse(tokenizer.Tokenize(Test));
+            var Tokens = tokenizer.Tokenize(Test);
+            LogicTreeParser.IBoolExpr expr1 = LogicTreeParser.Parse(Tokens);
 
             Console.WriteLine(expr1.ToDNF().ToClauseList().ToFormattedJson());
 

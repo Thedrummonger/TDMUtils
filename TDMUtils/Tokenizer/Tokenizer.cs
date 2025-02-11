@@ -445,6 +445,8 @@ namespace TDMUtils.Tokenizer
                 // Check for the "and" operator.
                 if (IsMatchOperator(input, i, _config.AndOperator))
                 {
+                    FlushBufferAsVariableToken(buffer, tokens);
+
                     // Error checking: operator cannot follow another operator.
                     if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
                         throw new Exception("Two logic operators in succession are not allowed.");
@@ -452,7 +454,6 @@ namespace TDMUtils.Tokenizer
                     if (tokens.Count > 0 && tokens[^1] is OpenContainerToken)
                         throw new Exception("A logic operator cannot immediately follow an open container.");
 
-                    FlushBufferAsVariableToken(buffer, tokens);
                     tokens.Add(new AndToken { Value = _config.AndOperator });
                     i += _config.AndOperator.Length;
                     continue;
@@ -461,6 +462,8 @@ namespace TDMUtils.Tokenizer
                 // Check for the "or" operator.
                 if (IsMatchOperator(input, i, _config.OrOperator))
                 {
+                    FlushBufferAsVariableToken(buffer, tokens);
+
                     // Error checking: operator cannot follow another operator.
                     if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
                         throw new Exception("Two logic operators in succession are not allowed.");
@@ -468,7 +471,6 @@ namespace TDMUtils.Tokenizer
                     if (tokens.Count > 0 && tokens[^1] is OpenContainerToken)
                         throw new Exception("A logic operator cannot immediately follow an open container.");
 
-                    FlushBufferAsVariableToken(buffer, tokens);
                     tokens.Add(new OrToken { Value = _config.OrOperator });
                     i += _config.OrOperator.Length;
                     continue;
@@ -493,6 +495,14 @@ namespace TDMUtils.Tokenizer
                         }
                         else
                         {
+                            // If the previous token is an operator, then the buffered text is not a function name.
+                            if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
+                            {
+                                FlushBufferAsVariableToken(buffer, tokens);
+                                tokens.Add(new OpenContainerToken { Value = _config.OpenContainer.ToString() });
+                                i++;
+                                continue;
+                            }
                             // Process function token.
                             string rawFunctionName = buffer.ToString();
                             buffer.Clear();
