@@ -58,9 +58,9 @@ namespace TDMUtils.Tokenizer
         /// </summary>
         /// <remarks>
         /// This method converts a boolean expression in Disjunctive Normal Form (DNF) into a flattened structure consisting of a list of clauses.
-        /// Each clause represents a conjunction (logical AND) of tokens, and the entire list represents a disjunction (logical OR) of these clauses.
-        /// The flattened representation is useful for evaluation: if any one clause (i.e., a list of tokens) evaluates to true
-        /// (meaning every token in that clause is true), then the overall DNF expression is true.
+        /// Each clause represents a conjunction (logical AND) of tokens, and the overall list represents a disjunction (logical OR) of these clauses.
+        /// The flattened representation is useful for evaluation: if any clause (i.e., a list of tokens) evaluates to true,
+        /// then the overall DNF expression is true.
         /// </remarks>
         public static List<List<IToken>> FlattenDnf(LogicTreeParser.IBoolExpr expr)
         {
@@ -191,22 +191,21 @@ namespace TDMUtils.Tokenizer
         }
 
         /// <summary>
-        /// Injects a replacement sub–expression into a flattened DNF by searching for a token to replace.
+        /// Injects a replacement sub–expression into a flattened DNF by searching for the first occurrence of a token that matches.
         /// </summary>
         /// <param name="flattenedDnf">
         /// The flattened DNF representation as a list of clauses, where each clause is a list of <see cref="IToken"/>.
         /// </param>
         /// <param name="tokenToReplace">
-        /// The <see cref="IToken"/> object to replace. This overload searches for the first occurrence of a token that
-        /// equals <paramref name="tokenToReplace"/> (using <c>.Equals()</c>).
+        /// The <see cref="IToken"/> object to replace.
         /// </param>
         /// <param name="replacementExpr">
         /// The replacement boolean expression (of type <see cref="LogicTreeParser.IBoolExpr"/>). This expression
-        /// will be converted to DNF and then flattened.
+        /// will be converted to DNF (if not already) and then flattened.
         /// </param>
         /// <returns>
-        /// A new flattened DNF (a <c>List&lt;List&lt;IToken&gt;&gt;</c>) in which the specified token has been replaced
-        /// by the tokens produced from <paramref name="replacementExpr"/>.
+        /// A new flattened DNF (a <c>List&lt;List&lt;IToken&gt;&gt;</c>) in which the first occurrence of the specified token
+        /// has been replaced by the tokens produced from <paramref name="replacementExpr"/>.
         /// </returns>
         /// <exception cref="Exception">
         /// Thrown if the specified token is not found in the flattened DNF.
