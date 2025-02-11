@@ -54,23 +54,24 @@ namespace TDMUtils.Tokenizer
         }
 
         /// <summary>
-        /// Flattens a DNF expression tree into a list of clauses, where each clause is represented as a list of <see cref="IToken"/>.
+        /// Extracts the disjunctive clauses from a boolean expression into a list of clauses,
+        /// where each clause is represented as a list of <see cref="IToken"/>.
         /// </summary>
         /// <remarks>
-        /// This method converts a boolean expression in Disjunctive Normal Form (DNF) into a flattened structure consisting of a list of clauses.
-        /// Each clause represents a conjunction (logical AND) of tokens, and the overall list represents a disjunction (logical OR) of these clauses.
-        /// The flattened representation is useful for evaluation: if any clause (i.e., a list of tokens) evaluates to true,
-        /// then the overall DNF expression is true.
+        /// This method recursively traverses an <see cref="LogicTreeParser.IBoolExpr"/> and produces a flattened structure of clauses.
+        /// Each clause represents a conjunction (logical AND) of tokens, and the overall result represents a disjunction (logical OR) of these clauses.
+        /// Although the method works correctly even if the input is not strictly in Disjunctive Normal Form (DNF),
+        /// it is recommended to call <c>ToDNF()</c> first to avoid redundant or nested clauses.
         /// </remarks>
-        public static List<List<IToken>> FlattenDnf(LogicTreeParser.IBoolExpr expr)
+        public static List<List<IToken>> ToClauseList(this LogicTreeParser.IBoolExpr expr)
         {
             switch (expr)
             {
                 case LogicTreeParser.VarExpr v:
-                    return new List<List<IToken>> { new List<IToken> { v.Token } };
+                    return [[v.Token]];
                 case LogicTreeParser.AndExpr andExpr:
-                    var leftClauses = FlattenDnf(andExpr.Left);
-                    var rightClauses = FlattenDnf(andExpr.Right);
+                    var leftClauses = ToClauseList(andExpr.Left);
+                    var rightClauses = ToClauseList(andExpr.Right);
                     var result = new List<List<IToken>>();
                     foreach (var lc in leftClauses)
                     {
@@ -83,8 +84,8 @@ namespace TDMUtils.Tokenizer
                     }
                     return result;
                 case LogicTreeParser.OrExpr orExpr:
-                    var leftOr = FlattenDnf(orExpr.Left);
-                    var rightOr = FlattenDnf(orExpr.Right);
+                    var leftOr = ToClauseList(orExpr.Left);
+                    var rightOr = ToClauseList(orExpr.Right);
                     leftOr.AddRange(rightOr);
                     return leftOr;
                 default:
@@ -92,24 +93,26 @@ namespace TDMUtils.Tokenizer
             }
         }
         /// <summary>
-        /// Reconstructs a boolean expression tree (in DNF) from a flattened DNF representation.
+        /// Reconstructs a boolean expression tree from a clause list.
         /// </summary>
-        /// <param name="clauses">A list of clauses, where each clause is a list of <see cref="IToken"/> objects.
-        /// Each clause represents a conjunction (AND) of tokens, and the overall list represents a disjunction (OR) of these clauses.</param>
+        /// <param name="clauses">
+        /// A list of clauses, where each clause is a list of <see cref="IToken"/> objects.
+        /// Each clause represents a conjunction (logical AND) of tokens, and the overall list represents a disjunction (logical OR) of these clauses.
+        /// </param>
         /// <returns>
         /// An <see cref="LogicTreeParser.IBoolExpr"/> representing the reconstructed boolean expression tree.
-        /// If <paramref name="clauses"/> is empty, a <c>VarExpr</c> representing the literal "true" is returned.
+        /// If <paramref name="clauses"/> is empty, a <see cref="LogicTreeParser.VarExpr"/> representing the literal "true" is returned.
         /// </returns>
-        public static LogicTreeParser.IBoolExpr BuildExprFromFlattenedDNF(List<List<IToken>> clauses)
+        public static LogicTreeParser.IBoolExpr BuildExprFromClauseList(List<List<IToken>> clauses)
         {
             if (clauses == null || clauses.Count == 0)
             {
-                // For an empty list, we assume the expression is trivially true.
+                // For an empty list, assume the expression is trivially true.
                 return new LogicTreeParser.VarExpr(new VariableToken { Value = "true" });
             }
 
             // Build an expression for each clause.
-            List<LogicTreeParser.IBoolExpr> clauseExprs = new List<LogicTreeParser.IBoolExpr>();
+            List<LogicTreeParser.IBoolExpr> clauseExprs = [];
             foreach (var clause in clauses)
             {
                 if (clause.Count == 0)
@@ -161,13 +164,13 @@ namespace TDMUtils.Tokenizer
             // Convert the replacement expression to DNF (safe even if already in DNF)
             var dnfReplacement = replacementExpr.ToDNF();
             // Flatten the replacement expression.
-            List<List<IToken>> newClauses = LogicTreeUtil.FlattenDnf(dnfReplacement);
+            List<List<IToken>> newClauses = LogicTreeUtil.ToClauseList(dnfReplacement);
 
             // Retrieve the original clause where the token will be replaced.
             List<IToken> originalClause = flattenedDnf[clauseIndex];
             // Split the clause into prefix (tokens before the target token) and suffix (tokens after).
-            List<IToken> prefix = originalClause.Take(tokenIndex).ToList();
-            List<IToken> suffix = originalClause.Skip(tokenIndex + 1).ToList();
+            List<IToken> prefix = [.. originalClause.Take(tokenIndex)];
+            List<IToken> suffix = [.. originalClause.Skip(tokenIndex + 1)];
 
             // Using the new C# 8 spread syntax to combine lists.
             List<List<IToken>> injectedClauses = [];
@@ -227,6 +230,84 @@ namespace TDMUtils.Tokenizer
                 }
             }
             throw new Exception("Specified token to replace was not found in the flattened DNF.");
+        }
+        /// <summary>
+        /// Minimizes a boolean expression that is in DNF by factoring out common tokens across all clauses.
+        /// </summary>
+        /// <param name="expr">
+        /// The boolean expression (in DNF) to minimize. It is assumed that <paramref name="expr"/> was produced by <c>ToDNF()</c>.
+        /// </param>
+        /// <returns>
+        /// An <see cref="LogicTreeParser.IBoolExpr"/> that is logically equivalent to <paramref name="expr"/>, but with
+        /// common tokens factored out. If no common tokens exist, a fully expanded (but equivalent) expression is returned.
+        /// </returns>
+        public static LogicTreeParser.IBoolExpr MinimizeDNF(LogicTreeParser.IBoolExpr expr)
+        {
+            // Flatten the DNF expression to get a list of clauses.
+            var flattened = expr.ToClauseList();
+            if (flattened == null || flattened.Count == 0)
+                return new LogicTreeParser.VarExpr(new VariableToken { Value = "true" });
+
+            // Compute the common tokens that appear in every clause.
+            // We assume that IToken implements a proper Equals() method.
+            var common = new HashSet<IToken>(flattened[0]);
+            foreach (var clause in flattened)
+            {
+                common.IntersectWith(clause);
+            }
+
+            if (common.Count == 0)
+            {
+                // No common tokens found; return the fully expanded expression.
+                return BuildExprFromClauseList(flattened);
+            }
+            // Build the common expression as an AND of the common tokens.
+            LogicTreeParser.IBoolExpr? commonExpr = null;
+            foreach (var token in common)
+            {
+                var varExpr = new LogicTreeParser.VarExpr(token);
+                commonExpr = (commonExpr == null) ? varExpr : new LogicTreeParser.AndExpr(commonExpr, varExpr);
+            }
+
+            // For each clause, remove the common tokens.
+            List<LogicTreeParser.IBoolExpr> remainderExprs = [];
+            foreach (var clause in flattened)
+            {
+                var remainder = clause.Where(t => !common.Contains(t)).ToList();
+                if (remainder.Count == 0)
+                {
+                    // This clause is completely covered by the common tokens.
+                    // In a conjunction, true is the identity; so we can consider this clause as "true"
+                    // (and thus it doesn't restrict the overall disjunction).
+                    continue;
+                }
+                else
+                {
+                    // Rebuild the clause as an AND expression.
+                    LogicTreeParser.IBoolExpr clauseExpr = new LogicTreeParser.VarExpr(remainder[0]);
+                    for (int i = 1; i < remainder.Count; i++)
+                    {
+                        clauseExpr = new LogicTreeParser.AndExpr(clauseExpr, new LogicTreeParser.VarExpr(remainder[i]));
+                    }
+                    remainderExprs.Add(clauseExpr);
+                }
+            }
+
+            LogicTreeParser.IBoolExpr? remainderExpr = null;
+            if (remainderExprs.Count > 0)
+            {
+                remainderExpr = remainderExprs[0];
+                for (int i = 1; i < remainderExprs.Count; i++)
+                {
+                    remainderExpr = new LogicTreeParser.OrExpr(remainderExpr, remainderExprs[i]);
+                }
+            }
+
+            // If every clause was fully factored (i.e. remainderExpr is null), the minimized expression is just the common factors.
+            if (remainderExpr == null)
+                return commonExpr!;
+            else
+                return new LogicTreeParser.AndExpr(commonExpr!, remainderExpr);
         }
     }
 }

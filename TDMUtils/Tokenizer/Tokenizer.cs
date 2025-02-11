@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace TDMUtils.Tokenizer
 {
+    /// <summary>
+    /// Represents a tokenized item.
+    /// </summary>
     public interface IToken
     {
         /// <summary>
@@ -27,7 +29,7 @@ namespace TDMUtils.Tokenizer
         /// <summary>
         /// Any leading modifier characters removed from the variable.
         /// </summary>
-        public List<char> Modifiers { get; set; } = new List<char>();
+        public List<char> Modifiers { get; set; } = [];
 
         /// <inheritdoc />
         public override string ToString()
@@ -46,6 +48,7 @@ namespace TDMUtils.Tokenizer
         /// The text value of the operator.
         /// </summary>
         public string Value { get; set; }
+
         /// <inheritdoc />
         public override string ToString() => $"{{ Value = \"{Value}\", Type = And }}";
     }
@@ -59,6 +62,7 @@ namespace TDMUtils.Tokenizer
         /// The text value of the operator.
         /// </summary>
         public string Value { get; set; }
+
         /// <inheritdoc />
         public override string ToString() => $"{{ Value = \"{Value}\", Type = Or }}";
     }
@@ -72,6 +76,7 @@ namespace TDMUtils.Tokenizer
         /// The text value of the token.
         /// </summary>
         public string Value { get; set; }
+
         /// <inheritdoc />
         public override string ToString() => $"{{ Value = \"{Value}\", Type = OpenContainer }}";
     }
@@ -85,6 +90,7 @@ namespace TDMUtils.Tokenizer
         /// The text value of the token.
         /// </summary>
         public string Value { get; set; }
+
         /// <inheritdoc />
         public override string ToString() => $"{{ Value = \"{Value}\", Type = CloseContainer }}";
     }
@@ -107,12 +113,12 @@ namespace TDMUtils.Tokenizer
         /// <summary>
         /// The parameters of the function, split into a collection of strings.
         /// </summary>
-        public List<string> Parameters { get; set; } = new List<string>();
+        public List<string> Parameters { get; set; } = [];
 
         /// <summary>
         /// Any modifier characters (for example, '!' in "!setting(...)") removed from the function name.
         /// </summary>
-        public List<char> Modifiers { get; set; } = new List<char>();
+        public List<char> Modifiers { get; set; } = [];
 
         /// <inheritdoc />
         public override string ToString()
@@ -194,9 +200,9 @@ namespace TDMUtils.Tokenizer
         }
 
         /// <summary>
-        /// Creates a new builder for the tokenizer configuration.
+        /// Creates a new builder for constructing a <see cref="TokenizerConfig"/>.
         /// </summary>
-        public static Builder NewBuilder() => new Builder();
+        public static Builder NewBuilder() => new();
 
         /// <summary>
         /// Builder class for constructing a <see cref="TokenizerConfig"/>.
@@ -209,8 +215,7 @@ namespace TDMUtils.Tokenizer
             internal char _closeContainer = ')';
             internal char _quote = '\''; // Default: single quote.
             internal bool _ignoreOperatorsInQuotes = true;
-            // Default modifiers if not overridden manually.
-            internal HashSet<char> _modifierChars = new HashSet<char> { '!', '%', '$' };
+            internal HashSet<char> _modifierChars = [];
             internal bool _splitOnWhitespace = true;
             internal char _parameterSeparator = ','; // Default separator.
 
@@ -248,7 +253,7 @@ namespace TDMUtils.Tokenizer
             /// Sets the modifier characters.
             /// </summary>
             /// <param name="modifierChars">A params array of modifier characters.</param>
-            public Builder SetModifierChars(params char[] modifierChars) { _modifierChars = new HashSet<char>(modifierChars); return this; }
+            public Builder SetModifierChars(params char[] modifierChars) { _modifierChars = [.. modifierChars]; return this; }
 
             /// <summary>
             /// Sets whether whitespace should be used as a delimiter.
@@ -271,8 +276,6 @@ namespace TDMUtils.Tokenizer
                 _closeContainer = ')';
                 _quote = '\"'; // C-style typically uses double quotes.
                 _ignoreOperatorsInQuotes = true;
-                // Reset modifiers to empty – application specific.
-                _modifierChars = new HashSet<char>();
                 _splitOnWhitespace = true;
                 _parameterSeparator = ',';
                 return this;
@@ -289,8 +292,6 @@ namespace TDMUtils.Tokenizer
                 _closeContainer = ')';
                 _quote = '\''; // Python commonly uses single quotes.
                 _ignoreOperatorsInQuotes = true;
-                // Reset modifiers to empty.
-                _modifierChars = new HashSet<char>();
                 _splitOnWhitespace = true;
                 _parameterSeparator = ',';
                 return this;
@@ -307,8 +308,6 @@ namespace TDMUtils.Tokenizer
                 _closeContainer = ')';
                 _quote = '\'';
                 _ignoreOperatorsInQuotes = true;
-                // Reset modifiers to empty.
-                _modifierChars = new HashSet<char>();
                 _splitOnWhitespace = true;
                 _parameterSeparator = ',';
                 return this;
@@ -325,15 +324,13 @@ namespace TDMUtils.Tokenizer
                 _closeContainer = ')';
                 _quote = '\'';
                 _ignoreOperatorsInQuotes = true;
-                // Reset modifiers to empty.
-                _modifierChars = new HashSet<char>();
                 _splitOnWhitespace = true;
                 _parameterSeparator = ',';
                 return this;
             }
 
             /// <summary>
-            /// Builds the <see cref="TokenizerConfig"/> instance.
+            /// Builds and returns the <see cref="TokenizerConfig"/> instance.
             /// </summary>
             public TokenizerConfig Build()
             {
@@ -355,28 +352,27 @@ namespace TDMUtils.Tokenizer
     /// <summary>
     /// Tokenizes an input string into tokens using the specified configuration.
     /// </summary>
-    public class Tokenizer
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="Tokenizer"/> class with the given configuration.
+    /// </remarks>
+    /// <param name="config">The tokenizer configuration.</param>
+    public class Tokenizer(TokenizerConfig config)
     {
-        private readonly TokenizerConfig _config;
+        private readonly TokenizerConfig _config = config;
         private readonly char _escapeChar = '\\';
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Tokenizer"/> class with the given configuration.
-        /// </summary>
-        public Tokenizer(TokenizerConfig config)
-        {
-            _config = config;
-        }
 
         /// <summary>
         /// Tokenizes the input string into a list of tokens.
         /// </summary>
         /// <param name="input">The input string to tokenize.</param>
         /// <returns>A list of tokens.</returns>
+        /// <exception cref="Exception">
+        /// Thrown if the input cannot be tokenized (for example, due to an unbalanced container).
+        /// </exception>
         public List<IToken> Tokenize(string input)
         {
-            List<IToken> tokens = new List<IToken>();
-            StringBuilder buffer = new StringBuilder();
+            List<IToken> tokens = [];
+            StringBuilder buffer = new();
             int i = 0;
             while (i < input.Length)
             {
@@ -432,7 +428,7 @@ namespace TDMUtils.Tokenizer
                         else
                         {
                             // Not at token boundaries; treat the quotes as literal text.
-                            buffer.Append(input.Substring(quoteStart, i - quoteStart));
+                            buffer.Append(input.AsSpan(quoteStart, i - quoteStart));
                         }
                         continue;
                     }
@@ -472,10 +468,8 @@ namespace TDMUtils.Tokenizer
                         if (buffer[0] == _config.Quote)
                         {
                             string literal = buffer.ToString();
-                            if (literal.Length >= 2 && literal[0] == _config.Quote && literal[literal.Length - 1] == _config.Quote)
-                            {
-                                literal = literal.Substring(1, literal.Length - 2);
-                            }
+                            if (literal.Length >= 2 && literal[0] == _config.Quote && literal[^1] == _config.Quote)
+                                literal = literal[1..^1];
                             tokens.Add(new VariableToken { Value = literal });
                             buffer.Clear();
                             tokens.Add(new OpenContainerToken { Value = _config.OpenContainer.ToString() });
@@ -487,22 +481,20 @@ namespace TDMUtils.Tokenizer
                             // Process function token.
                             string rawFunctionName = buffer.ToString();
                             buffer.Clear();
-                            List<char> modChars = new List<char>();
+                            List<char> modChars = [];
                             string functionName = rawFunctionName;
                             while (functionName.Length > 0 && _config.ModifierChars.Contains(functionName[0]))
                             {
                                 modChars.Add(functionName[0]);
-                                functionName = functionName.Substring(1);
+                                functionName = functionName[1..];
                             }
                             if (!TryParseBalanced(input, i, out string containerContent, out int newIndex))
-                            {
                                 throw new Exception("Unbalanced container starting at position " + i);
-                            }
                             // Extract the parameter string (excluding the outer container characters).
-                            string paramStr = containerContent.Substring(1, containerContent.Length - 2);
+                            string paramStr = containerContent[1..^1];
                             // Split parameters at top-level occurrences of the parameter separator.
                             List<string> paramList = SplitParameters(paramStr);
-                            string fullFunctionValue = (modChars.Count > 0 ? new string(modChars.ToArray()) : "") + functionName + containerContent;
+                            string fullFunctionValue = (modChars.Count > 0 ? new string([.. modChars]) : "") + functionName + containerContent;
                             tokens.Add(new FunctionToken
                             {
                                 Value = fullFunctionValue,
@@ -541,12 +533,36 @@ namespace TDMUtils.Tokenizer
         }
 
         /// <summary>
-        /// Splits a parameter string into a list of parameters at top-level occurrences of the separator.
+        /// Attempts to tokenize the given input string.
+        /// If tokenization succeeds, returns <c>true</c> and sets the out parameter to the resulting tokens.
+        /// If an exception is thrown during tokenization, returns <c>false</c> and sets the out parameter to an empty list.
         /// </summary>
+        /// <param name="input">The input string to tokenize.</param>
+        /// <param name="tokens">When successful, the list of tokens produced from the input; otherwise, an empty list.</param>
+        /// <returns><c>true</c> if tokenization succeeds; otherwise, <c>false</c>.</returns>
+        public bool TryTokenize(string input, out List<IToken> tokens)
+        {
+            try
+            {
+                tokens = Tokenize(input);
+                return true;
+            }
+            catch (Exception)
+            {
+                tokens = [];
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Splits a parameter string into a list of parameters at top-level occurrences of the parameter separator.
+        /// </summary>
+        /// <param name="paramStr">The parameter string to split.</param>
+        /// <returns>A list of trimmed parameter strings.</returns>
         private List<string> SplitParameters(string paramStr)
         {
-            List<string> parameters = new List<string>();
-            StringBuilder current = new StringBuilder();
+            List<string> parameters = [];
+            StringBuilder current = new();
             int depth = 0;
             int i = 0;
             while (i < paramStr.Length)
@@ -597,15 +613,15 @@ namespace TDMUtils.Tokenizer
                 i++;
             }
             if (current.Length > 0)
-            {
                 parameters.Add(current.ToString().Trim());
-            }
             return parameters;
         }
 
         /// <summary>
         /// Flushes any buffered text as a variable token, processing any leading modifier characters.
         /// </summary>
+        /// <param name="buffer">The buffer containing accumulated characters.</param>
+        /// <param name="tokens">The list of tokens to which the new token is added.</param>
         private void FlushBufferAsVariableToken(StringBuilder buffer, List<IToken> tokens)
         {
             if (buffer.Length > 0)
@@ -613,11 +629,11 @@ namespace TDMUtils.Tokenizer
                 string tokenValue = buffer.ToString();
                 buffer.Clear();
 
-                List<char> modifiers = new List<char>();
+                List<char> modifiers = [];
                 while (tokenValue.Length > 0 && _config.ModifierChars.Contains(tokenValue[0]))
                 {
                     modifiers.Add(tokenValue[0]);
-                    tokenValue = tokenValue.Substring(1);
+                    tokenValue = tokenValue[1..];
                 }
                 if (!string.IsNullOrEmpty(tokenValue))
                 {
@@ -633,7 +649,11 @@ namespace TDMUtils.Tokenizer
         /// <summary>
         /// Checks whether the substring at the current index matches the given operator.
         /// </summary>
-        private bool IsMatchOperator(string input, int index, string op)
+        /// <param name="input">The input string.</param>
+        /// <param name="index">The starting index.</param>
+        /// <param name="op">The operator string to match.</param>
+        /// <returns><c>true</c> if the substring matches; otherwise, <c>false</c>.</returns>
+        private static bool IsMatchOperator(string input, int index, string op)
         {
             if (string.IsNullOrEmpty(op)) return false;
             if (index + op.Length > input.Length) return false;
@@ -643,10 +663,15 @@ namespace TDMUtils.Tokenizer
         /// <summary>
         /// Reads a quoted string from the input (handling escapes) and returns its content (excluding the quotes).
         /// </summary>
+        /// <param name="input">The input string.</param>
+        /// <param name="index">
+        /// The current index in the input string. The index is updated to point after the closing quote.
+        /// </param>
+        /// <returns>The content inside the quotes.</returns>
         private string ReadQuoted(string input, ref int index)
         {
             index++; // Skip the opening quote.
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             while (index < input.Length)
             {
                 char c = input[index];
@@ -672,8 +697,17 @@ namespace TDMUtils.Tokenizer
         }
 
         /// <summary>
-        /// Parses a balanced container (supporting nested containers) starting at the specified index.
+        /// Attempts to parse a balanced container (supporting nested containers) starting at the specified index.
         /// </summary>
+        /// <param name="input">The input string.</param>
+        /// <param name="startIndex">The starting index where the container is expected.</param>
+        /// <param name="containerContent">
+        /// When successful, contains the substring corresponding to the balanced container (including the outer container characters).
+        /// </param>
+        /// <param name="newIndex">
+        /// When successful, contains the index immediately after the closing container.
+        /// </param>
+        /// <returns><c>true</c> if a balanced container was successfully parsed; otherwise, <c>false</c>.</returns>
         private bool TryParseBalanced(string input, int startIndex, out string containerContent, out int newIndex)
         {
             containerContent = "";
@@ -698,7 +732,7 @@ namespace TDMUtils.Tokenizer
                     if (count == 0)
                     {
                         i++;
-                        containerContent = input.Substring(startIndex, i - startIndex);
+                        containerContent = input[startIndex..i];
                         newIndex = i;
                         return true;
                     }
@@ -711,6 +745,8 @@ namespace TDMUtils.Tokenizer
         /// <summary>
         /// Determines if the specified character is considered a delimiter.
         /// </summary>
+        /// <param name="ch">The character to test.</param>
+        /// <returns><c>true</c> if the character is a delimiter; otherwise, <c>false</c>.</returns>
         private bool IsDelimiter(char ch)
         {
             if (char.IsWhiteSpace(ch))
