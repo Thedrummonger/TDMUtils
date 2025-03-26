@@ -99,13 +99,8 @@ namespace TDMUtils.Tokenizer
     /// <summary>
     /// Represents a function token with a function name, a collection of parameters, and any modifiers.
     /// </summary>
-    public class FunctionToken : IToken
+    public class FunctionToken : VariableToken
     {
-        /// <summary>
-        /// The full text value of the function token.
-        /// </summary>
-        public string Value { get; set; }
-
         /// <summary>
         /// The function name, after stripping any modifiers.
         /// </summary>
@@ -115,11 +110,6 @@ namespace TDMUtils.Tokenizer
         /// The parameters of the function, split into a collection of strings.
         /// </summary>
         public List<string> Parameters { get; set; } = [];
-
-        /// <summary>
-        /// Any modifier characters (for example, '!' in "!setting(...)") removed from the function name.
-        /// </summary>
-        public List<char> Modifiers { get; set; } = [];
 
         /// <inheritdoc />
         public override string ToString()
@@ -383,13 +373,9 @@ namespace TDMUtils.Tokenizer
                 if (char.IsWhiteSpace(c))
                 {
                     if (_config.SplitOnWhitespace)
-                    {
                         FlushBufferAsVariableToken(buffer, tokens);
-                    }
                     else
-                    {
                         buffer.Append(c);
-                    }
                     i++;
                     continue;
                 }
@@ -412,25 +398,8 @@ namespace TDMUtils.Tokenizer
                     // Only treat as a quoted token if this quote is at the start of a new token.
                     if (buffer.Length == 0)
                     {
-                        int quoteStart = i;  // Save position.
                         string quotedLiteral = ReadQuoted(input, ref i); // Reads content inside quotes (excluding the quotes).
-
-                        // Look ahead, ignoring whitespace, to decide if the token ends here.
-                        int temp = i;
-                        while (temp < input.Length && char.IsWhiteSpace(input[temp]))
-                        {
-                            temp++;
-                        }
-                        bool tokenComplete = (temp >= input.Length) || IsDelimiter(input[temp]);
-                        if (tokenComplete)
-                        {
-                            tokens.Add(new VariableToken { Value = quotedLiteral });
-                        }
-                        else
-                        {
-                            // Not at token boundaries; treat the quotes as literal text.
-                            buffer.Append(input.AsSpan(quoteStart, i - quoteStart));
-                        }
+                        tokens.Add(new VariableToken { Value = quotedLiteral });
                         continue;
                     }
                     else
@@ -446,14 +415,6 @@ namespace TDMUtils.Tokenizer
                 if (IsMatchOperator(input, i, _config.AndOperator))
                 {
                     FlushBufferAsVariableToken(buffer, tokens);
-
-                    // Error checking: operator cannot follow another operator.
-                    if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
-                        throw new Exception("Two logic operators in succession are not allowed.");
-                    // Error checking: operator cannot immediately follow an open container.
-                    if (tokens.Count > 0 && tokens[^1] is OpenContainerToken)
-                        throw new Exception("A logic operator cannot immediately follow an open container.");
-
                     tokens.Add(new AndToken { Value = _config.AndOperator });
                     i += _config.AndOperator.Length;
                     continue;
@@ -463,14 +424,6 @@ namespace TDMUtils.Tokenizer
                 if (IsMatchOperator(input, i, _config.OrOperator))
                 {
                     FlushBufferAsVariableToken(buffer, tokens);
-
-                    // Error checking: operator cannot follow another operator.
-                    if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
-                        throw new Exception("Two logic operators in succession are not allowed.");
-                    // Error checking: operator cannot immediately follow an open container.
-                    if (tokens.Count > 0 && tokens[^1] is OpenContainerToken)
-                        throw new Exception("A logic operator cannot immediately follow an open container.");
-
                     tokens.Add(new OrToken { Value = _config.OrOperator });
                     i += _config.OrOperator.Length;
                     continue;
@@ -481,61 +434,34 @@ namespace TDMUtils.Tokenizer
                 {
                     if (buffer.Length > 0)
                     {
-                        // If buffered text starts with a quote, treat it as a literal variable rather than a function call.
-                        if (buffer[0] == _config.Quote)
+                        // Process function token.
+                        string functionName = buffer.ToString();
+                        buffer.Clear();
+                        List<char> modChars = [];
+                        while (functionName.Length > 0 && _config.ModifierChars.Contains(functionName[0]))
                         {
-                            string literal = buffer.ToString();
-                            if (literal.Length >= 2 && literal[0] == _config.Quote && literal[^1] == _config.Quote)
-                                literal = literal[1..^1];
-                            tokens.Add(new VariableToken { Value = literal });
-                            buffer.Clear();
-                            tokens.Add(new OpenContainerToken { Value = _config.OpenContainer.ToString() });
-                            i++;
-                            continue;
+                            modChars.Add(functionName[0]);
+                            functionName = functionName[1..];
                         }
-                        else
+                        if (!TryParseBalanced(input, i, out string containerContent, out int newIndex))
+                            throw new Exception("Unbalanced container starting at position " + i);
+                        // Extract the parameter string (excluding the outer container characters).
+                        string paramStr = containerContent[1..^1];
+                        // Split parameters at top-level occurrences of the parameter separator.
+                        List<string> paramList = SplitParameters(paramStr);
+                        string fullFunctionValue = (modChars.Count > 0 ? new string([.. modChars]) : "") + functionName + containerContent;
+                        tokens.Add(new FunctionToken
                         {
-                            // If the previous token is an operator, then the buffered text is not a function name.
-                            if (tokens.Count > 0 && (tokens[^1] is AndToken || tokens[^1] is OrToken))
-                            {
-                                FlushBufferAsVariableToken(buffer, tokens);
-                                tokens.Add(new OpenContainerToken { Value = _config.OpenContainer.ToString() });
-                                i++;
-                                continue;
-                            }
-                            // Process function token.
-                            string rawFunctionName = buffer.ToString();
-                            buffer.Clear();
-                            List<char> modChars = [];
-                            string functionName = rawFunctionName;
-                            while (functionName.Length > 0 && _config.ModifierChars.Contains(functionName[0]))
-                            {
-                                modChars.Add(functionName[0]);
-                                functionName = functionName[1..];
-                            }
-                            if (!TryParseBalanced(input, i, out string containerContent, out int newIndex))
-                                throw new Exception("Unbalanced container starting at position " + i);
-                            // Extract the parameter string (excluding the outer container characters).
-                            string paramStr = containerContent[1..^1];
-                            // Split parameters at top-level occurrences of the parameter separator.
-                            List<string> paramList = SplitParameters(paramStr);
-                            string fullFunctionValue = (modChars.Count > 0 ? new string([.. modChars]) : "") + functionName + containerContent;
-                            tokens.Add(new FunctionToken
-                            {
-                                Value = fullFunctionValue,
-                                FunctionName = functionName,
-                                Parameters = paramList,
-                                Modifiers = modChars
-                            });
-                            i = newIndex;
-                            continue;
-                        }
+                            Value = fullFunctionValue,
+                            FunctionName = functionName,
+                            Parameters = paramList,
+                            Modifiers = modChars
+                        });
+                        i = newIndex;
+                        continue;
                     }
                     else
                     {
-                        // Error checking: an open container must follow a logic operator or another open container.
-                        if (tokens.Count > 0 && !(tokens[^1] is AndToken || tokens[^1] is OrToken || tokens[^1] is OpenContainerToken))
-                            throw new Exception("An open container must follow a logic operator or another open container.");
                         FlushBufferAsVariableToken(buffer, tokens);
                         tokens.Add(new OpenContainerToken { Value = _config.OpenContainer.ToString() });
                         i++;
@@ -772,21 +698,38 @@ namespace TDMUtils.Tokenizer
         }
 
         /// <summary>
-        /// Determines if the specified character is considered a delimiter.
+        /// Checks the tokenized list for rule violations according to defined logic rules:
+        /// - Two consecutive logic operator tokens (AndToken or OrToken) are not allowed.
+        /// - A logic operator cannot immediately follow an OpenContainerToken.
+        /// - An OpenContainerToken must only appear at the start of the token list or immediately following an operator or another OpenContainerToken.
         /// </summary>
-        /// <param name="ch">The character to test.</param>
-        /// <returns><c>true</c> if the character is a delimiter; otherwise, <c>false</c>.</returns>
-        private bool IsDelimiter(char ch)
+        /// <param name="tokens">The token list to check.</param>
+        /// <exception cref="Exception">Throws an exception with a descriptive message if any rule violation is found.</exception>
+        public void CheckTokenList(List<IToken> tokens)
         {
-            if (char.IsWhiteSpace(ch))
-                return true;
-            if (ch == _config.OpenContainer || ch == _config.CloseContainer)
-                return true;
-            if (!string.IsNullOrEmpty(_config.AndOperator) && ch == _config.AndOperator[0])
-                return true;
-            if (!string.IsNullOrEmpty(_config.OrOperator) && ch == _config.OrOperator[0])
-                return true;
-            return false;
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                // Two consecutive logic operators are not allowed.
+                if (i > 0 && (tokens[i] is AndToken || tokens[i] is OrToken) &&
+                    (tokens[i - 1] is AndToken || tokens[i - 1] is OrToken))
+                {
+                    throw new Exception($"Error: Two consecutive logic operators found at positions {i - 1} and {i}.");
+                }
+
+                // An operator cannot immediately follow an OpenContainerToken.
+                if (i > 0 && (tokens[i] is AndToken || tokens[i] is OrToken) &&
+                    (tokens[i - 1] is OpenContainerToken))
+                {
+                    throw new Exception($"Error: A logic operator at position {i} cannot immediately follow an open container.");
+                }
+
+                // Rule 3: An open container must only appear at the start or after an operator or another open container.
+                if (tokens[i] is OpenContainerToken && i > 0 &&
+                    !(tokens[i - 1] is AndToken || tokens[i - 1] is OrToken || tokens[i - 1] is OpenContainerToken))
+                {
+                    throw new Exception($"Error: An open container at position {i} must follow an operator or another open container.");
+                }
+            }
         }
     }
 }
