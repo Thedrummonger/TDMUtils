@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Windows.Forms;
+using TDMUtils;
 
 namespace TDMWinUtils
 {
@@ -54,5 +55,37 @@ namespace TDMWinUtils
         value.GetType().GetField(value.ToString())?.GetCustomAttributes(typeof(DescriptionAttribute), false)
              .OfType<DescriptionAttribute>()
              .FirstOrDefault()?.Description ?? value.ToString();
+
+        public static void AppendString(this RichTextBox rtb, params ColoredString[] coloredStrings)
+        {
+            rtb.AppendString(() =>
+            {
+                string rtf = ColoredString.BuildColoredStringsRtf(coloredStrings, rtb.ForeColor);
+                rtb.SelectedRtf = rtf;
+            });
+        }
+        public static void AppendString(this RichTextBox rtb, string text, Color? color = null)
+        {
+            rtb.AppendString(() =>
+            {
+                if (color is not null)
+                    rtb.SelectionColor = color.Value;
+                rtb.AppendText(text + Environment.NewLine);
+                rtb.SelectionColor = rtb.ForeColor;
+            });
+        }
+        public static void AppendString(this RichTextBox rtb, Action appendAction)
+        {
+            bool autoScroll = rtb.SelectionStart == rtb.TextLength;
+
+            rtb.SelectionStart = rtb.TextLength;
+            appendAction();
+
+            if (autoScroll)
+            {
+                rtb.SelectionStart = rtb.TextLength;
+                rtb.ScrollToCaret();
+            }
+        }
     }
 }
