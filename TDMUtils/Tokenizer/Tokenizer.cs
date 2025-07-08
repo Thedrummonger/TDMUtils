@@ -33,11 +33,7 @@ namespace TDMUtils.Tokenizer
         public List<char> Modifiers { get; set; } = [];
 
         /// <inheritdoc />
-        public override string ToString()
-        {
-            string mods = (Modifiers.Count > 0) ? $" [Modifiers: {string.Join(",", Modifiers)}]" : "";
-            return $"{{ Value = \"{Value}\", Type = Variable{mods} }}";
-        }
+        public override string ToString() => $"[V] {Value}";
     }
 
     /// <summary>
@@ -51,7 +47,7 @@ namespace TDMUtils.Tokenizer
         public string Value { get; set; }
 
         /// <inheritdoc />
-        public override string ToString() => $"{{ Value = \"{Value}\", Type = And }}";
+        public override string ToString() => $"[&] {Value}";
     }
 
     /// <summary>
@@ -65,7 +61,7 @@ namespace TDMUtils.Tokenizer
         public string Value { get; set; }
 
         /// <inheritdoc />
-        public override string ToString() => $"{{ Value = \"{Value}\", Type = Or }}";
+        public override string ToString() => $"[|] {Value}";
     }
 
     /// <summary>
@@ -79,7 +75,7 @@ namespace TDMUtils.Tokenizer
         public string Value { get; set; }
 
         /// <inheritdoc />
-        public override string ToString() => $"{{ Value = \"{Value}\", Type = OpenContainer }}";
+        public override string ToString() => $"[(] {Value}";
     }
 
     /// <summary>
@@ -93,7 +89,7 @@ namespace TDMUtils.Tokenizer
         public string Value { get; set; }
 
         /// <inheritdoc />
-        public override string ToString() => $"{{ Value = \"{Value}\", Type = CloseContainer }}";
+        public override string ToString() => $"[)] {Value}";
     }
 
     /// <summary>
@@ -112,12 +108,7 @@ namespace TDMUtils.Tokenizer
         public List<string> Parameters { get; set; } = [];
 
         /// <inheritdoc />
-        public override string ToString()
-        {
-            string mods = (Modifiers.Count > 0) ? $" [Modifiers: {string.Join(",", Modifiers)}]" : "";
-            string paramStr = string.Join(", ", Parameters);
-            return $"{{ Value = \"{Value}\", Type = Function, FunctionName = \"{FunctionName}\", Parameters = \"{paramStr}\"{mods} }}";
-        }
+        public override string ToString() => $"[F] {Value}";
     }
 
     /// <summary>
