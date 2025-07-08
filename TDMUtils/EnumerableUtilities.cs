@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,16 @@ namespace TDMUtils
 {
     public static class EnumerableUtilities
     {
+        public class ContainerItem(object? value, string display)
+        {
+            public object? Value { get; } = value;
+            public string Display { get; } = display;
+            public override string ToString() => Display;
+            public static ContainerItem[] ToContainerList<T>(IEnumerable<T> items, Func<T, string> Display) =>
+                [.. items.Select(i => new ContainerItem(i, Display(i)))];
+            public static ContainerItem[] ToContainerList<T>(IEnumerable<T> items, Func<T, object> Tags, Func<T, string> Display) =>
+                [.. items.Select(i => new ContainerItem(Tags(i), Display(i)))];
+        }
         /// <summary>
         /// Converts an Enumerable of string to a single string with NewLine Characters to seperate the values
         /// </summary>
@@ -194,5 +205,10 @@ namespace TDMUtils
 
             return selected.Pool;
         }
+
+        public static string GetDescription(this Enum value) =>
+        value.GetType().GetField(value.ToString())?.GetCustomAttributes(typeof(DescriptionAttribute), false)
+             .OfType<DescriptionAttribute>()
+             .FirstOrDefault()?.Description ?? value.ToString();
     }
 }
