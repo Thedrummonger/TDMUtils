@@ -54,7 +54,7 @@ namespace TDMUtils.CLITools
         /// </summary>
         public abstract string[] Values();
     }
-    internal class AppletScreen
+    public class AppletScreen
     {
         int MenuIndex = 0;
         Applet[] applets;
