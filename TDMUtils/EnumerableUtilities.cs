@@ -210,5 +210,27 @@ namespace TDMUtils
         value.GetType().GetField(value.ToString())?.GetCustomAttributes(typeof(DescriptionAttribute), false)
              .OfType<DescriptionAttribute>()
              .FirstOrDefault()?.Description ?? value.ToString();
+
+        public static T NextValue<T>(this IList<T> list, T current, bool reverse = false)
+        {
+            int index = list.IndexOf(current);
+            if (index == -1)
+                return list[0];
+
+            int next = reverse ? (index - 1 + list.Count) % list.Count : (index + 1) % list.Count;
+
+            return list[next];
+        }
+        public static T NextValue<T>(T current, bool reverse = false) where T : struct, Enum
+        {
+            var list = (T[])Enum.GetValues(typeof(T));
+            int index = Array.IndexOf(list, current);
+            if (index == -1)
+                return list[0];
+
+            int next = reverse ? (index - 1 + list.Length) % list.Length : (index + 1) % list.Length;
+
+            return list[next];
+        }
     }
 }
