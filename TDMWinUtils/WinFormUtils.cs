@@ -45,7 +45,7 @@ namespace TDMWinUtils
         {
             rtb.AppendString(() =>
             {
-                string rtf = ColoredString.BuildColoredStringsRtf(coloredStrings, rtb.ForeColor);
+                string rtf = ColoredString.BuildRtf(coloredStrings, rtb.ForeColor);
                 rtb.SelectedRtf = rtf;
             });
         }
