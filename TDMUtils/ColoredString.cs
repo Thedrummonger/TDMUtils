@@ -11,6 +11,13 @@ namespace TDMUtils
     {
         private List<(string Text, Color? Color)> words;
         /// <summary>
+        /// Creates a deep copy of another <see cref="ColoredString"/>.
+        /// </summary>
+        public ColoredString(ColoredString other)
+        {
+            words = [.. other.words];
+        }
+        /// <summary>
         /// Initializes an empty <see cref="ColoredString"/>.
         /// </summary>
         public ColoredString()
@@ -83,9 +90,9 @@ namespace TDMUtils
         public ColoredString PadRight(int totalWidth, char paddingChar = ' ')
         {
             int visibleLength = ToString().Length;
-            int needed = Math.Max(0, totalWidth - visibleLength);
+            int needed = Math.Max(0, totalWidth - visibleLength - 1);
             if (needed > 0)
-                words.Add((new string(paddingChar, needed), null));
+                AddText(new string(paddingChar, needed), false);
             return this;
         }
 
@@ -96,9 +103,9 @@ namespace TDMUtils
         public ColoredString PadLeft(int totalWidth, char paddingChar = ' ')
         {
             int visibleLength = ToString().Length;
-            int needed = Math.Max(0, totalWidth - visibleLength);
+            int needed = Math.Max(0, totalWidth - visibleLength - 1);
             if (needed > 0)
-                words.Insert(0, (new string(paddingChar, needed), null));
+                AddText(new string(paddingChar, needed), false);
             return this;
         }
 

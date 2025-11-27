@@ -66,7 +66,7 @@ namespace TDMUtils.CLITools
         public Dictionary<Type, Func<object, string>> Formatters = new()
         {
             [typeof(string)] = s => ((string)s).PadRight(Console.WindowWidth),
-            [typeof(ColoredString)] = s => ((ColoredString)s).PadRight(Console.WindowWidth).Build(),
+            [typeof(ColoredString)] = s => new ColoredString((ColoredString)s).PadRight(Console.WindowWidth).Build(),
             [typeof(DateTime)] = s => ((DateTime)s).ToString("MM/dd/yyyy").PadRight(Console.WindowWidth),
         };
         string MenuBar => $"[Esc] Menu [R] Refresh [↕] Cycle Selected App ({SelectedApplet.Title()}) [↔] Cycle App Page [Space] Toggle App";

@@ -28,8 +28,7 @@ namespace TDMUtilsTests
 
             //Console.WriteLine(Tokens.ToFormattedJson());
 
-            Applet test = new TestApplet();
-            AppletScreen testScreen = new AppletScreen([test]);
+            AppletScreen testScreen = new AppletScreen([new TestApplet()]);
             testScreen.Show();
 
         }
@@ -39,17 +38,17 @@ namespace TDMUtilsTests
             public override string Title() => "Test Applet";
             public override bool StaticSize() => false;
             public override bool StartAtEnd() => false;
-            public override string[] Values() =>
+            public override ColoredString[] Values() =>
             [
-                "Value 1 ==",
-                "Value 2 ==",
-                "Value 3 ==",
-                "Value 4 == ==",
-                "Value 5 == ==",
-                "Value 6 == ==",
-                "Value 7 == == ==",
-                "Value 8 == == ==",
-                "Value 9 == == ==",
+                new ColoredString("Value 1 ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 2 ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 3 ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 4 == ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 5 == ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 6 == ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 7 == == ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 8 == == ==", System.Drawing.Color.Aqua),
+                new ColoredString("Value 9 == == ==", System.Drawing.Color.Aqua),
             ];
         }
 
