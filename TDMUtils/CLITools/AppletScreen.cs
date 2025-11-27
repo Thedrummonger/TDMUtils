@@ -39,7 +39,7 @@ namespace TDMUtils.CLITools
         /// <summary>
         /// Clears the line before writing a new line. Used when special formatting might mess up spacing.
         /// </summary>
-        public bool HandleSpecialFormatting = false;
+        public bool AggressiveLineClearing = false;
         /// <summary>
         /// The display name of the app
         /// </summary>
@@ -56,13 +56,19 @@ namespace TDMUtils.CLITools
         /// <summary>
         /// The values that will be displayed by the app
         /// </summary>
-        public abstract string[] Values();
+        public abstract object[] Values();
     }
     public class AppletScreen
     {
         int MenuIndex = 0;
         Applet[] applets;
         Applet SelectedApplet;
+        public Dictionary<Type, Func<object, string>> Formatters = new()
+        {
+            [typeof(string)] = s => ((string)s).PadRight(Console.WindowWidth),
+            [typeof(ColoredString)] = s => ((ColoredString)s).PadRight(Console.WindowWidth).Build(),
+            [typeof(DateTime)] = s => ((DateTime)s).ToString("MM/dd/yyyy").PadRight(Console.WindowWidth),
+        };
         string MenuBar => $"[Esc] Menu [R] Refresh [↕] Cycle Selected App ({SelectedApplet.Title()}) [↔] Cycle App Page [Space] Toggle App";
         public AppletScreen(Applet[] Apps)
         {
@@ -143,7 +149,7 @@ namespace TDMUtils.CLITools
 
         private void PrintApp(Applet app, bool full = false)
         {
-            string[][] pages = app.StartAtEnd() ? [.. app.Values().Reverse().Chunk(app.valueSize)] : [.. app.Values().Chunk(app.valueSize)];
+            object[][] pages = app.StartAtEnd() ? [.. app.Values().Reverse().Chunk(app.valueSize)] : [.. app.Values().Chunk(app.valueSize)];
             app.maxPage = Math.Max(pages.Length - 1, 0);
             app.currentPage = Math.Clamp(app.currentPage, 0, app.maxPage);
 
@@ -163,9 +169,13 @@ namespace TDMUtils.CLITools
             for (int i = 0; i < app.valueSize; i++)
             {
                 Console.SetCursorPosition(0, row++);
-                if (app.HandleSpecialFormatting)
+                if (app.AggressiveLineClearing)
                     Console.Write(new string(' ', Console.WindowWidth));
-                Console.Write(((i < page.Length ? page[i] : string.Empty)).PadRight(Console.WindowWidth));
+                object printObject = (i < page.Length ? page[i] : string.Empty);
+                if (Formatters.TryGetValue(printObject.GetType(), out var formatter))
+                    Console.Write(formatter(printObject));
+                else
+                    Console.Write((printObject.ToString()??printObject.GetType().ToString()).PadRight(Console.WindowWidth));
             }
             if (full)
             {

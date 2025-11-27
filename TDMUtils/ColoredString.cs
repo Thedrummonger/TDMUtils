@@ -77,6 +77,33 @@ namespace TDMUtils
         public List<(string Text, Color? Color)> Words => words;
 
         /// <summary>
+        /// Pads the visible text on the right to the specified total width.
+        /// ANSI formatting is preserved.
+        /// </summary>
+        public ColoredString PadRight(int totalWidth, char paddingChar = ' ')
+        {
+            int visibleLength = ToString().Length;
+            int needed = Math.Max(0, totalWidth - visibleLength);
+            if (needed > 0)
+                words.Add((new string(paddingChar, needed), null));
+            return this;
+        }
+
+        /// <summary>
+        /// Pads the visible text on the left to the specified total width.
+        /// ANSI formatting is preserved.
+        /// </summary>
+        public ColoredString PadLeft(int totalWidth, char paddingChar = ' ')
+        {
+            int visibleLength = ToString().Length;
+            int needed = Math.Max(0, totalWidth - visibleLength);
+            if (needed > 0)
+                words.Insert(0, (new string(paddingChar, needed), null));
+            return this;
+        }
+
+
+        /// <summary>
         /// Builds an ANSI-formatted string that will display colored text in supported console environments.
         /// </summary>
         /// <param name="DefaultForeColor">The fallback color for text without a defined color.</param>
