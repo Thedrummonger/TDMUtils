@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using TDMUtils;
+using TDMUtils.CLITools;
 using TDMUtils.Tokenizer;
 
 namespace TDMUtilsTests
@@ -25,8 +26,31 @@ namespace TDMUtilsTests
             var Tokens = tokenizer.Tokenize(Test);
             LogicTreeParser.IBoolExpr expr1 = LogicTreeParser.Parse(Tokens);
 
-            Console.WriteLine(Tokens.ToFormattedJson());
+            //Console.WriteLine(Tokens.ToFormattedJson());
 
+            Applet test = new TestApplet();
+            AppletScreen testScreen = new AppletScreen([test]);
+            testScreen.Show();
+
+        }
+
+        public class TestApplet : Applet
+        {
+            public override string Title() => "Test Applet";
+            public override bool StaticSize() => false;
+            public override bool StartAtEnd() => false;
+            public override string[] Values() =>
+            [
+                "Value 1 ==",
+                "Value 2 ==",
+                "Value 3 ==",
+                "Value 4 == ==",
+                "Value 5 == ==",
+                "Value 6 == ==",
+                "Value 7 == == ==",
+                "Value 8 == == ==",
+                "Value 9 == == ==",
+            ];
         }
 
     }

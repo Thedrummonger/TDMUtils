@@ -37,6 +37,10 @@ namespace TDMUtils.CLITools
         /// </summary>
         public int maxPage = 0;
         /// <summary>
+        /// Clears the line before writing a new line. Used when special formatting might mess up spacing.
+        /// </summary>
+        public bool HandleSpecialFormatting = false;
+        /// <summary>
         /// The display name of the app
         /// </summary>
         /// <returns></returns>
@@ -159,6 +163,8 @@ namespace TDMUtils.CLITools
             for (int i = 0; i < app.valueSize; i++)
             {
                 Console.SetCursorPosition(0, row++);
+                if (app.HandleSpecialFormatting)
+                    Console.Write(new string(' ', Console.WindowWidth));
                 Console.Write(((i < page.Length ? page[i] : string.Empty)).PadRight(Console.WindowWidth));
             }
             if (full)
