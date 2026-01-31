@@ -6,6 +6,14 @@ namespace TDMUtils
     public static class DataFileUtilities
     {
 
+        public enum FileStructure
+        {
+            unknown = 0,
+            json = 1,
+            yaml = 2,
+            csv = 3
+        }
+
         //JSON Helpers
         /// <summary>
         /// Read the given JSON file and Deserializes it's contents
@@ -139,43 +147,78 @@ namespace TDMUtils
         /// <param name="Default">The default state of the object</param>
         /// <param name="WriteDefaultToFileIfError">Should the given default value be written to the given path if the file is missing or corrupted</param>
         /// <returns></returns>
-        public static T LoadObjectFromFileOrDefault<T>(string FilePath, T Default, bool WriteDefaultToFileIfError)
+        public static T LoadObjectFromFileOrDefault<T>(string FilePath, T Default, bool WriteDefaultToFileIfError, FileStructure fileType = FileStructure.unknown, bool logging = false)
         {
             T result = Default;
             bool FileError = false;
+
+            if (fileType == FileStructure.unknown)
+            {
+                switch (Path.GetExtension(FilePath).ToLower())
+                {
+                    case ".json":
+                        fileType = FileStructure.json; 
+                        break;
+                    case ".yaml":
+                        fileType = FileStructure.yaml;
+                        break;
+                    case ".csv":
+                        fileType = FileStructure.csv;
+                        break;
+                }
+            }
+
             if (File.Exists(FilePath))
             {
                 try
                 {
-                    if (MiscUtilities.In(Path.GetExtension(FilePath).ToLower(), ".json", ".txt")) { result = DeserializeJsonFile<T>(FilePath); }
-                    else if (MiscUtilities.In(Path.GetExtension(FilePath).ToLower(), ".yaml")) { result = DeserializeYAMLFile<T>(FilePath); }
-                    else if (MiscUtilities.In(Path.GetExtension(FilePath).ToLower(), ".csv")) { result = DeserializeCSVFile<T>(FilePath); }
-                    else
+                    switch (fileType)
                     {
-                        Debug.WriteLine($"Failed to Deserialize {FilePath} {Path.GetExtension(FilePath)} Was not supported");
-                        FileError = true;
-                        result = Default;
+                        case FileStructure.json:
+                            result = DeserializeJsonFile<T>(FilePath);
+                            break;
+                        case FileStructure.yaml:
+                            result = DeserializeYAMLFile<T>(FilePath);
+                            break;
+                        case FileStructure.csv:
+                            result = DeserializeCSVFile<T>(FilePath);
+                            break;
+                        default:
+                            if (logging) Console.WriteLine($"Failed to Deserialize {FilePath} {Path.GetExtension(FilePath)} Was not supported");
+                            Debug.WriteLine($"Failed to Deserialize {FilePath} {Path.GetExtension(FilePath)} Was not supported");
+                            FileError = true;
+                            result = Default;
+                            break;
                     }
                 }
-                catch
+                catch (Exception E)
                 {
-                    Debug.WriteLine($"Failed to Deserialize {FilePath} to {typeof(T)}");
+                    if (logging) Console.WriteLine($"Failed to Deserialize {FilePath} to {typeof(T)}\n{E}");
+                    Debug.WriteLine($"Failed to Deserialize {FilePath} to {typeof(T)}\n{E}");
                     FileError = true;
                     result = Default;
                 }
             }
             else
             {
+                if (logging) Console.WriteLine($"File did not exit {FilePath}");
                 Debug.WriteLine($"File did not exit {FilePath}");
                 FileError = true;
             }
             if (FileError && WriteDefaultToFileIfError)
             {
-                if (MiscUtilities.In(Path.GetExtension(FilePath).ToLower(), ".json", ".txt")) { File.WriteAllText(FilePath, ToFormattedJson(result)); }
-                else if (MiscUtilities.In(Path.GetExtension(FilePath).ToLower(), ".yaml")) { File.WriteAllText(FilePath, ToYamlString(result)); }
-                else
+                switch (fileType)
                 {
-                    Debug.WriteLine($"Failed to write default to file {FilePath} {Path.GetExtension(FilePath)} Was not supported");
+                    case FileStructure.json:
+                        File.WriteAllText(FilePath, ToFormattedJson(result));
+                        break;
+                    case FileStructure.yaml:
+                        File.WriteAllText(FilePath, ToYamlString(result));
+                        break;
+                    default:
+                        if (logging) Console.WriteLine($"Failed to write default to file {FilePath} {Path.GetExtension(FilePath)} Was not supported");
+                        Debug.WriteLine($"Failed to write default to file {FilePath} {Path.GetExtension(FilePath)} Was not supported");
+                        break;
                 }
             }
             return result;
