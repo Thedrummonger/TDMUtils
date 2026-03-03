@@ -166,5 +166,19 @@ namespace TDMUtils
         {
             return Regex.Replace(Input, "([a-z])([A-Z])", "$1 $2");
         }
+
+        public static string TruncateString(string input, int maxLength, string indicator = "...")
+        {
+            if (string.IsNullOrEmpty(input) || maxLength <= 0)
+                return input;
+
+            if (input.Length <= maxLength)
+                return input;
+
+            if (indicator.Length >= maxLength)
+                return indicator.Substring(0, maxLength);
+
+            return input.Substring(0, maxLength - indicator.Length) + indicator;
+        }
     }
 }

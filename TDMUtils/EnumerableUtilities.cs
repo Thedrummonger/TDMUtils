@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -208,10 +209,40 @@ namespace TDMUtils
             return selected.Pool;
         }
 
-        public static string GetDescription(this Enum value) =>
-        value.GetType().GetField(value.ToString())?.GetCustomAttributes(typeof(DescriptionAttribute), false)
-             .OfType<DescriptionAttribute>()
-             .FirstOrDefault()?.Description ?? value.ToString();
+        public static T? GetAttribute<T>(this Enum value)
+        where T : Attribute
+        {
+            var field = value.GetType().GetField(value.ToString(), BindingFlags.Public | BindingFlags.Static);
+            return field?.GetCustomAttribute<T>(inherit: false);
+        }
+
+        public static T GetAttributeOrDefault<T>(this Enum value, T defaultValue) where T : Attribute => value.GetAttribute<T>() ?? defaultValue;
+        public static string GetDescription(this Enum value) => value.GetAttribute<DescriptionAttribute>()?.Description ?? value.ToString();
+
+        public static bool HasAttribute<T>(this Enum value) where T : Attribute
+            => value.GetType().GetField(value.ToString(), BindingFlags.Public | BindingFlags.Static)?.IsDefined(typeof(T), inherit: false) == true;
+
+        public static bool HasAttributeAnyFlag<T>(this Enum value) where T : Attribute
+        {
+            var raw = Convert.ToUInt64(value);
+            foreach (var f in value.GetType().GetFields(BindingFlags.Public | BindingFlags.Static))
+                if ((raw & Convert.ToUInt64(f.GetValue(null))) != 0 &&
+                    f.IsDefined(typeof(T), false))
+                    return true;
+            return false;
+        }
+        public static bool HasAttributeAllFlags<T>(this Enum value) where T : Attribute
+        {
+            var raw = Convert.ToUInt64(value);
+            foreach (var f in value.GetType().GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                var flag = Convert.ToUInt64(f.GetValue(null));
+                if (flag != 0 && (raw & flag) == flag && !f.IsDefined(typeof(T), false))
+                    return false;
+            }
+
+            return true;
+        }
 
         public static T NextValue<T>(this IList<T> list, T current, bool reverse = false)
         {
