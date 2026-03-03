@@ -9,7 +9,7 @@ namespace TDMUtils
 {
     public static class NetUtilities
     {
-        private static int DefaultNetworkPort = 443;
+        private static int DefaultNetworkPort = 35251;
         public static void SetGlobalDefaultPort(int port) => DefaultNetworkPort = port;
         public static (string? Ip, int Port) ParseIpAddress(string input)
         {
@@ -30,6 +30,8 @@ namespace TDMUtils
         public event Action? ServerConnectionEstablished;
         public event Action? ServerConnectionLost;
         public event Action<T>? PacketReceived;
+
+        public string Address => _uri.OriginalString;
 
         public SimpleWebClient(Uri uri) => _uri = uri;
         public SimpleWebClient(string address)
@@ -127,6 +129,8 @@ namespace TDMUtils
         public event Action<Guid>? ClientConnect;
         public event Action<Guid>? ClientDisconnect;
         public event Action<Guid, T>? PacketReceived;
+
+        public string Address => _prefix;
         public SimpleWebServer(Uri uri, int maxClients = 1)
         {
             if (uri == null) throw new ArgumentNullException(nameof(uri));

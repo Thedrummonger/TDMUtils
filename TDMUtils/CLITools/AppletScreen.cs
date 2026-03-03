@@ -15,27 +15,27 @@ namespace TDMUtils.CLITools
         /// <summary>
         /// The amount of values that should be displayed at once in the applet
         /// </summary>
-        public int valueSize = 0;
+        internal int valueSize = 0;
         /// <summary>
         /// The total length of the applet when printed to the screen
         /// </summary>
-        public int TotalSize => valueSize + 2; //Size of the values plus header and separator
+        internal int TotalSize => valueSize + 2; //Size of the values plus header and separator
         /// <summary>
         /// The applets starting position in the console window.
         /// </summary>
-        public int startIndex = 0;
+        internal int startIndex = 0;
         /// <summary>
         /// Marks that the app data needs to be redrawn
         /// </summary>
-        public int NeedsUpdate = 0;
+        internal int NeedsUpdate = 0;
         /// <summary>
         /// The current value page being displayed
         /// </summary>
-        public int currentPage = 0;
+        internal int currentPage = 0;
         /// <summary>
         /// The total amount of pages values will be split into.
         /// </summary>
-        public int maxPage = 0;
+        internal int maxPage = 0;
         /// <summary>
         /// Clears the line before writing a new line. Used when special formatting might mess up spacing.
         /// </summary>
@@ -70,7 +70,7 @@ namespace TDMUtils.CLITools
             [typeof(DateTime)] = s => ((DateTime)s).ToString("MM/dd/yyyy").PadRight(Console.WindowWidth),
         };
         string MenuBar => $"[Esc] Menu [R] Refresh [↕] Cycle Selected App ({SelectedApplet.Title()}) [↔] Cycle App Page [Space] Toggle App";
-        public AppletScreen(Applet[] Apps)
+        public AppletScreen(params Applet[] Apps)
         {
             applets = Apps;
             SelectedApplet = applets.First();
@@ -143,12 +143,15 @@ namespace TDMUtils.CLITools
             CalculateAppProperties();
             foreach (var i in applets.Where(x => x.IsEnabled))
                 PrintApp(i, true);
+            if (!ValidateConsoleSize("Menu", MenuIndex, 0)) return;
             Console.SetCursorPosition(0, MenuIndex);
             Console.WriteLine(MenuBar);
         }
 
         private void PrintApp(Applet app, bool full = false)
         {
+            if (!ValidateConsoleSize(app.Title(), app.valueSize, 1)) return;
+
             object[][] pages = app.StartAtEnd()
                 ? [.. Enumerable.Reverse(app.Values()).Chunk(app.valueSize)]
                 : [.. app.Values().Chunk(app.valueSize)];
@@ -158,6 +161,8 @@ namespace TDMUtils.CLITools
 
             var row = app.startIndex;
             var page = pages.Length > 0 ? (app.StartAtEnd() ? [.. Enumerable.Reverse(pages[app.currentPage])] : pages[app.currentPage]) : [];
+
+            if (!ValidateConsoleSize(app.Title(), row, 0)) return;
 
             Console.SetCursorPosition(0, row);
             if (full || pages.Length > 1)
@@ -224,6 +229,14 @@ namespace TDMUtils.CLITools
                 app.currentPage = 0;
             }
             MenuIndex = Ind;
+        }
+
+        public bool ValidateConsoleSize(string title, int val, int min = 0)
+        {
+            if (val >= min) return true;
+            Console.SetCursorPosition(0, 0);
+            Console.WriteLine($"Console to small to display {title}!");
+            return false;
         }
     }
 }
