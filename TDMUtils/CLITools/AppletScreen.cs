@@ -93,7 +93,7 @@ namespace TDMUtils.CLITools
         public void Show()
         {
             using var cts = new CancellationTokenSource();
-            var lastTick = Environment.TickCount64;
+            var lastTick = Environment.TickCount;
             var refreshMs = 500;
             FormatWindow();
             Console.CursorVisible = false;
@@ -116,10 +116,10 @@ namespace TDMUtils.CLITools
                     }
                 }
 
-                if (Environment.TickCount64 - lastTick >= refreshMs)
+                if (Environment.TickCount - lastTick >= refreshMs)
                 {
                     UpdateApps();
-                    lastTick = Environment.TickCount64;
+                    lastTick = Environment.TickCount;
                 }
 
                 Thread.Sleep(10);
@@ -149,12 +149,15 @@ namespace TDMUtils.CLITools
 
         private void PrintApp(Applet app, bool full = false)
         {
-            object[][] pages = app.StartAtEnd() ? [.. app.Values().Reverse().Chunk(app.valueSize)] : [.. app.Values().Chunk(app.valueSize)];
+            object[][] pages = app.StartAtEnd()
+                ? [.. Enumerable.Reverse(app.Values()).Chunk(app.valueSize)]
+                : [.. app.Values().Chunk(app.valueSize)];
+
             app.maxPage = Math.Max(pages.Length - 1, 0);
-            app.currentPage = Math.Clamp(app.currentPage, 0, app.maxPage);
+            app.currentPage = MiscUtilities.Clamp(app.currentPage, 0, app.maxPage);
 
             var row = app.startIndex;
-            var page = pages.Length > 0 ? (app.StartAtEnd() ? pages[app.currentPage].Reverse().ToArray() : pages[app.currentPage]) : [];
+            var page = pages.Length > 0 ? (app.StartAtEnd() ? [.. Enumerable.Reverse(pages[app.currentPage])] : pages[app.currentPage]) : [];
 
             Console.SetCursorPosition(0, row);
             if (full || pages.Length > 1)
@@ -194,8 +197,6 @@ namespace TDMUtils.CLITools
 
             return list[next];
         }
-
-        public static T[] TakePortion<T>(T[] source, int count, bool fromEnd) => fromEnd ? [.. source.TakeLast(count)] : [.. source.Take(count)];
 
         private void CalculateAppProperties()
         {

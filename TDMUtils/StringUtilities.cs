@@ -21,11 +21,22 @@ namespace TDMUtils
         /// <returns></returns>
         public static string Replace(this string s, int index, int length, string replacement)
         {
-            var builder = new StringBuilder();
-            builder.Append(s[..index]);
-            builder.Append(replacement);
-            builder.Append(s[(index + length)..]);
-            return builder.ToString();
+#if NETCOREAPP2_1_OR_GREATER
+            return string.Create(s.Length - length + replacement.Length, (s, index, length, replacement),
+                static (dst, state) =>
+                {
+                    var (src, i, len, rep) = state;
+                    src.AsSpan(0, i).CopyTo(dst);
+                    rep.AsSpan().CopyTo(dst.Slice(i));
+                    src.AsSpan(i + len).CopyTo(dst.Slice(i + rep.Length));
+                });
+#else
+            return new StringBuilder(s.Length - length + replacement.Length)
+                .Append(s.Substring(0, index))
+                .Append(replacement)
+                .Append(s.Substring(index + length))
+                .ToString();
+#endif
         }
         public static bool IsNullOrWhiteSpace(this string s) => string.IsNullOrWhiteSpace(s);
         public static bool IsNullOrEmpty(this string s) => string.IsNullOrEmpty(s);
@@ -43,7 +54,14 @@ namespace TDMUtils
         /// <param name="Val">The substring to split on</param>
         /// <returns></returns>
         /// 
-        public static string[] TrimSplit(this string s, string Val) => s.Split(Val).Select(x => x.Trim()).ToArray();
+        public static string[] TrimSplit(this string s, string Val)
+        {
+#if NET5_0_OR_GREATER
+            return [.. s.Split(Val).Select(x => x.Trim())];
+#else
+            return [.. s.Split([Val], StringSplitOptions.None).Select(x => x.Trim())];
+#endif
+        }
         /// <summary>
         /// Splits a string by the first occurrence of the given char
         /// </summary>
@@ -54,10 +72,11 @@ namespace TDMUtils
         public static Tuple<string, string> SplitOnce(this string input, char Split, bool LastOccurrence = false)
         {
             int idx = LastOccurrence ? input.LastIndexOf(Split) : input.IndexOf(Split);
-            Tuple<string, string> Output;
-            if (idx != -1) { Output = new(input[..idx], input[(idx + 1)..]); }
-            else { Output = new(input, string.Empty); }
-            return Output;
+
+            if (idx != -1)
+                return new Tuple<string, string>(input.Substring(0, idx), input.Substring(idx + 1));
+
+            return new Tuple<string, string>(input, string.Empty);
         }
         /// <summary>
         /// Checks if the string represents an integer range
@@ -123,10 +142,10 @@ namespace TDMUtils
         {
             bool Literal = false;
             CleanedID = ID.Trim();
-            if (ID.StartsWith("'") && ID.EndsWith("'"))
+            if (CleanedID.Length >= 2 && CleanedID[0] == '\'' && CleanedID[CleanedID.Length - 1] == '\'')
             {
                 Literal = true;
-                CleanedID = ID[1..^1];
+                CleanedID = CleanedID.Substring(1, CleanedID.Length - 2);
             }
             return Literal;
         }

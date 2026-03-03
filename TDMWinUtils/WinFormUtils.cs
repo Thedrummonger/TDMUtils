@@ -55,8 +55,21 @@ namespace TDMWinUtils
             {
                 if (color is not null)
                     rtb.SelectionColor = color.Value;
-                rtb.AppendText(text + Environment.NewLine);
+                rtb.AppendText(text);
                 rtb.SelectionColor = rtb.ForeColor;
+            });
+        }
+        public static void AppendString(this RichTextBox rtb, ColoredString coloredStrings)
+        {
+            rtb.AppendString(() =>
+            {
+                foreach (var word in coloredStrings.Words)
+                {
+                    if (word.Color is not null)
+                        rtb.SelectionColor = word.Color.Value;
+                    rtb.AppendText(word.Text);
+                    rtb.SelectionColor = rtb.ForeColor;
+                }
             });
         }
         public static void AppendString(this RichTextBox rtb, Action appendAction)

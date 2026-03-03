@@ -54,6 +54,7 @@ namespace TDMUtils
         /// <returns>An array of <string></returns>
         public static IEnumerable<string> EnumAsStringArray<T>() => 
             EnumAsArray<T>().Select(x => x.ToString()).ToArray();
+#if NET6_0_OR_GREATER
         /// <summary>
         /// Gets the values from a list in a certain range
         /// </summary>
@@ -66,6 +67,7 @@ namespace TDMUtils
             var (start, length) = range.GetOffsetAndLength(list.Count);
             return list.GetRange(start, length);
         }
+#endif
         /// <summary>
         /// If the given key is not present in the dictionary, add the given value at the given key
         /// </summary>
@@ -231,6 +233,40 @@ namespace TDMUtils
             int next = reverse ? (index - 1 + list.Length) % list.Length : (index + 1) % list.Length;
 
             return list[next];
+        }
+
+#if NET6_0_OR_GREATER
+        public static IEnumerable<T[]> Chunk<T>(IEnumerable<T> source, int size)
+            => source.Chunk(size);
+#else
+        public static IEnumerable<T[]> Chunk<T>(this IEnumerable<T> source, int size)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (size <= 0) throw new ArgumentOutOfRangeException(nameof(size));
+
+            var buffer = new List<T>(size);
+
+            foreach (var item in source)
+            {
+                buffer.Add(item);
+                if (buffer.Count == size)
+                {
+                    yield return buffer.ToArray();
+                    buffer.Clear();
+                }
+            }
+
+            if (buffer.Count != 0)
+                yield return buffer.ToArray();
+        }
+#endif
+        public static T[] TakePortion<T>(T[] source, int count, bool fromEnd)
+        {
+            if (count >= source.Length) return [.. source];
+            var result = new T[count];
+            if (fromEnd) Array.Copy(source, source.Length - count, result, 0, count);
+            else Array.Copy(source, 0, result, 0, count);
+            return result;
         }
     }
 }

@@ -432,12 +432,12 @@ namespace TDMUtils.Tokenizer
                         while (functionName.Length > 0 && _config.ModifierChars.Contains(functionName[0]))
                         {
                             modChars.Add(functionName[0]);
-                            functionName = functionName[1..];
+                            functionName = functionName.Substring(1);
                         }
                         if (!TryParseBalanced(input, i, out string containerContent, out int newIndex))
                             throw new Exception("Unbalanced container starting at position " + i);
                         // Extract the parameter string (excluding the outer container characters).
-                        string paramStr = containerContent[1..^1];
+                        string paramStr = containerContent.Substring(1, containerContent.Length - 2);
                         // Split parameters at top-level occurrences of the parameter separator.
                         List<string> paramList = SplitParameters(paramStr);
                         string fullFunctionValue = (modChars.Count > 0 ? new string([.. modChars]) : "") + functionName + containerContent;
@@ -579,7 +579,7 @@ namespace TDMUtils.Tokenizer
                 while (tokenValue.Length > 0 && _config.ModifierChars.Contains(tokenValue[0]))
                 {
                     modifiers.Add(tokenValue[0]);
-                    tokenValue = tokenValue[1..];
+                    tokenValue = tokenValue.Substring(1);
                 }
                 if (!string.IsNullOrEmpty(tokenValue))
                 {
@@ -678,7 +678,7 @@ namespace TDMUtils.Tokenizer
                     if (count == 0)
                     {
                         i++;
-                        containerContent = input[startIndex..i];
+                        containerContent = input.Substring(startIndex, i - startIndex);
                         newIndex = i;
                         return true;
                     }

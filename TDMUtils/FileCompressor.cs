@@ -38,11 +38,15 @@ namespace TDMUtils
         {
             return Decompress(Convert.FromBase64String(String));
         }
-
+#if NET6_0_OR_GREATER
+        public const CompressionLevel BestCompression = CompressionLevel.SmallestSize;
+#else
+        public const CompressionLevel BestCompression = CompressionLevel.Optimal;
+#endif
         private static byte[] CompressByte(byte[] bytes)
         {
             using var memoryStream = new MemoryStream();
-            using (var gzipStream = new GZipStream(memoryStream, CompressionLevel.SmallestSize))
+            using (var gzipStream = new GZipStream(memoryStream, BestCompression))
             {
                 gzipStream.Write(bytes, 0, bytes.Length);
             }

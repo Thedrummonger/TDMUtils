@@ -67,7 +67,7 @@ namespace TDMUtils.CLITools
         public ConsoleSelect<T> AddCancelOption(string display) { AddStatic(new FlaggedOption<T>(display, ReturnFlag.Cancel)); return this; }
         public ConsoleSelect<T> AddConfirmOption(string display) { AddStatic(new FlaggedOption<T>(display, ReturnFlag.Confirm)); return this; }
 
-        public ConsoleSelect<T> SetCancelKey(ConsoleKey key = ConsoleKey.None) { CancelKey = key; return this; }
+        public ConsoleSelect<T> SetCancelKey(ConsoleKey key = 0) { CancelKey = key; return this; }
 
         public bool HasValidOptions => _options.Any(x => x.Conditional is null || x.Conditional());
         public ConsoleSelect<T> StartIndex(int i) { _startIndex = i; return this; }
@@ -90,8 +90,8 @@ namespace TDMUtils.CLITools
             for (int i = 0; i < OptionPages.Length; i++)
                 OptionPages[i] = [.. OptionPages[i], .. ValidStaticOptions];
 
-            CurrentPage = Math.Clamp(_startPage, 0, OptionPages.Length - 1);
-            CurrentSelection = Math.Clamp(_startIndex, 0, OptionPages[CurrentPage].Length - 1);
+            CurrentPage = MiscUtilities.Clamp(_startPage, 0, OptionPages.Length - 1);
+            CurrentSelection = MiscUtilities.Clamp(_startIndex, 0, OptionPages[CurrentPage].Length - 1);
 
             foreach (var l in _pre) Console.WriteLine(l);
             if (NeedsPages) { Console.WriteLine(); }
@@ -110,20 +110,20 @@ namespace TDMUtils.CLITools
                 switch (Key)
                 {
                     case ConsoleKey.UpArrow:
-                        CurrentSelection = Math.Clamp(CurrentSelection - 1, 0, OptionPages[CurrentPage].Length - 1);
+                        CurrentSelection = MiscUtilities.Clamp(CurrentSelection - 1, 0, OptionPages[CurrentPage].Length - 1);
                         break;
                     case ConsoleKey.DownArrow:
-                        CurrentSelection = Math.Clamp(CurrentSelection + 1, 0, OptionPages[CurrentPage].Length - 1);
+                        CurrentSelection = MiscUtilities.Clamp(CurrentSelection + 1, 0, OptionPages[CurrentPage].Length - 1);
                         break;
                     case ConsoleKey.PageDown:
                     case ConsoleKey.LeftArrow:
-                        CurrentPage = Math.Clamp(CurrentPage - 1, 0, OptionPages.Length - 1);
-                        CurrentSelection = Math.Clamp(CurrentSelection, 0, OptionPages[CurrentPage].Length - 1);
+                        CurrentPage = MiscUtilities.Clamp(CurrentPage - 1, 0, OptionPages.Length - 1);
+                        CurrentSelection = MiscUtilities.Clamp(CurrentSelection, 0, OptionPages[CurrentPage].Length - 1);
                         break;
                     case ConsoleKey.PageUp:
                     case ConsoleKey.RightArrow:
-                        CurrentPage = Math.Clamp(CurrentPage + 1, 0, OptionPages.Length - 1);
-                        CurrentSelection = Math.Clamp(CurrentSelection, 0, OptionPages[CurrentPage].Length - 1);
+                        CurrentPage = MiscUtilities.Clamp(CurrentPage + 1, 0, OptionPages.Length - 1);
+                        CurrentSelection = MiscUtilities.Clamp(CurrentSelection, 0, OptionPages[CurrentPage].Length - 1);
                         break;
                     case ConsoleKey.Enter:
                     case ConsoleKey.Spacebar:

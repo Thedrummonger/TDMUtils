@@ -139,14 +139,14 @@ namespace TDMUtils
         /// <param name="obj">The object to inspect.</param>
         /// <param name="propertyName">The name of the property to check.</param>
         /// <returns>True if the object has the specified property; otherwise, false.</returns>
-        public static bool HasProperty(dynamic obj, string propertyName)
+        public static bool HasProperty(object obj, string propertyName)
         {
             if (obj is null || string.IsNullOrWhiteSpace(propertyName)) return false;
-            return obj switch
-            {
-                ExpandoObject e => ((IDictionary<string, object>)e!).ContainsKey(propertyName),
-                _ => obj.GetType().GetProperty(propertyName) is not null
-            };
+
+            if (obj is ExpandoObject e)
+                return ((IDictionary<string, object>)e).ContainsKey(propertyName);
+
+            return obj.GetType().GetProperty(propertyName) != null;
         }
         /// <summary>
         /// Checks whether a dynamic object contains a specified method.
@@ -154,10 +154,10 @@ namespace TDMUtils
         /// <param name="obj">The object to inspect.</param>
         /// <param name="methodName">The name of the method to check.</param>
         /// <returns>True if the object has the specified method; otherwise, false.</returns>
-        public static bool HasMethod(dynamic obj, string methodName)
+        public static bool HasMethod(object obj, string methodName)
         {
             if (obj is null || string.IsNullOrWhiteSpace(methodName)) return false;
-            return obj.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance) is not null;
+            return obj.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance) != null;
         }
         /// <summary>
         /// Determines whether a thread is alive and the associated object is a valid Windows Forms control.
@@ -166,12 +166,20 @@ namespace TDMUtils
         /// <param name="thread">The thread to check.</param>
         /// <param name="control">The Windows Forms control to verify.</param>
         /// <returns>True if the thread is alive and the control is valid; otherwise, false.</returns>
-        public static bool IsWinFormsControlAccessible(Thread? thread, dynamic control)
+        public static bool IsWinFormsControlAccessible(Thread? thread, object? control)
         {
-            if (thread is null || control is null) return false;
+            if (thread == null || control == null) return false;
 
-            bool isControlValid = !HasProperty(control, "IsHandleCreated") || control.IsHandleCreated;
+            var prop = control.GetType().GetProperty("IsHandleCreated", BindingFlags.Public | BindingFlags.Instance);
+            bool isControlValid = prop == null || (prop.GetValue(control, null) is bool b && b);
+
             return thread.IsAlive && isControlValid;
+        }
+        public static T Clamp<T>(T value, T min, T max) where T : IComparable<T>
+        {
+            if (value.CompareTo(min) < 0) return min;
+            if (value.CompareTo(max) > 0) return max;
+            return value;
         }
     }
 }
