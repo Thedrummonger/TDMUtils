@@ -1,9 +1,11 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Net;
 using System.Net.WebSockets;
 using System.Runtime.Serialization;
+using System.Text;
 
 namespace TDMUtils
 {
@@ -257,31 +259,34 @@ namespace TDMUtils
     }
     internal static class PacketCodec
     {
+        static readonly JsonSerializerSettings Settings = new()
+        {
+            TypeNameHandling = TypeNameHandling.None,
+            MissingMemberHandling = MissingMemberHandling.Ignore,
+            NullValueHandling = NullValueHandling.Ignore,
+            ReferenceLoopHandling = ReferenceLoopHandling.Error
+        };
+
         public static byte[] Encode<T>(T packet)
         {
-            var serializer = new DataContractSerializer(typeof(T));
-
-            using var rawMs = new MemoryStream();
-            serializer.WriteObject(rawMs, packet);
-            rawMs.Position = 0;
+            var json = JsonConvert.SerializeObject(packet, Settings);
+            var raw = Encoding.UTF8.GetBytes(json);
 
             using var gzMs = new MemoryStream();
             using (var gz = new GZipStream(gzMs, CompressionLevel.Optimal, leaveOpen: true))
-                rawMs.CopyTo(gz);
+                gz.Write(raw, 0, raw.Length);
 
             return gzMs.ToArray();
         }
 
         public static T Decode<T>(byte[] bytes)
         {
-            var serializer = new DataContractSerializer(typeof(T));
-
             using var gzMs = new MemoryStream(bytes);
             using var gz = new GZipStream(gzMs, CompressionMode.Decompress);
-            using var outMs = new MemoryStream();
-            gz.CopyTo(outMs);
-            outMs.Position = 0;
-            return (T)serializer.ReadObject(outMs);
+            using var sr = new StreamReader(gz, Encoding.UTF8);
+            var json = sr.ReadToEnd();
+
+            return JsonConvert.DeserializeObject<T>(json, Settings)!;
         }
         public static async Task<byte[]?> ReceiveFullBinaryMessageAsync(WebSocket ws, CancellationToken ct)
         {

@@ -17,8 +17,8 @@ namespace TDMUtilsTests
         /// </summary>
         public static void Main()
         {
-            //TestWebServer().GetAwaiter().GetResult();
-            TestApplets();
+            TestWebServer().GetAwaiter().GetResult();
+            //TestApplets();
         }
 
         public static async Task TestWebServer()
@@ -26,7 +26,7 @@ namespace TDMUtilsTests
             var key = Console.ReadKey();
             if (key.Key == ConsoleKey.S)
             {
-                var server = new SimpleWebServer<string>("localhost");
+                var server = new SimpleWebServer<ObjectWrappers.DisplayItem<string>>("localhost");
                 server.ClientConnect += (g) => { Console.WriteLine($"New Client Connected {g}"); };
                 server.ClientDisconnect += (g) => { Console.WriteLine($"Client DisConnected {g}"); };
                 server.PacketReceived += (g, s) => { Console.WriteLine($"Got message from {g}: {s}"); };
@@ -37,12 +37,12 @@ namespace TDMUtilsTests
                     var Message = Console.ReadLine();
                     if (Message == null || Message == "exit")
                         break;
-                    server.Broadcast(Message);
+                    server.Broadcast(new ObjectWrappers.DisplayItem<string>(Message, $"Client: {Message}"));
                 }
             }
             else
             {
-                var client = new SimpleWebClient<string>("localhost");
+                var client = new SimpleWebClient<ObjectWrappers.DisplayItem<string>>("localhost");
                 client.ServerConnectionEstablished += () => { Console.WriteLine($"Server Connected"); };
                 client.ServerConnectionLost += () => { Console.WriteLine($"Server DisConnected"); };
                 client.PacketReceived += (s) => { Console.WriteLine($"Got message from Server: {s}"); };
@@ -56,7 +56,7 @@ namespace TDMUtilsTests
                     var Message = Console.ReadLine();
                     if (Message == null || Message == "exit")
                         break;
-                    await client.SendAsync(Message);
+                    await client.SendAsync(new ObjectWrappers.DisplayItem<string>(Message, $"Client: {Message}"));
                 }
             }
         }
