@@ -4,6 +4,7 @@ using System.Linq;
 using TDMUtils;
 using TDMUtils.CLITools;
 using TDMUtils.Tokenizer;
+using static TDMUtils.WebClientExtensions;
 
 namespace TDMUtilsTests
 {
@@ -26,10 +27,18 @@ namespace TDMUtilsTests
             var key = Console.ReadKey();
             if (key.Key == ConsoleKey.S)
             {
-                var server = new SimpleWebServer<ObjectWrappers.DisplayItem<string>>("localhost");
+                var server = new SimpleWebServer<BasePacket>("localhost");
+                var Router = new SimpleServerRequestRouter<BasePacket>(server);
                 server.ClientConnect += (g) => { Console.WriteLine($"New Client Connected {g}"); };
                 server.ClientDisconnect += (g) => { Console.WriteLine($"Client DisConnected {g}"); };
-                server.PacketReceived += (g, s) => { Console.WriteLine($"Got message from {g}: {s}"); };
+                server.PacketReceived += (g, s) => 
+                {
+                    if (Router.TryHandle(g, s))
+                        return;
+                    if (s.Message is not null)
+                        Console.WriteLine(s.Message);
+                };
+                Router.Register("ping", (g, p, r) => { r.Message = "Pong"; });
                 server.Start();
                 Console.WriteLine($"Started Server on {server.Address}");
                 while (true)
@@ -37,15 +46,21 @@ namespace TDMUtilsTests
                     var Message = Console.ReadLine();
                     if (Message == null || Message == "exit")
                         break;
-                    server.Broadcast(new ObjectWrappers.DisplayItem<string>(Message, $"Client: {Message}"));
+                    server.Broadcast(new BasePacket() { Message = $"Server: {Message}" });
                 }
             }
             else
             {
-                var client = new SimpleWebClient<ObjectWrappers.DisplayItem<string>>("localhost");
+                var client = new SimpleWebClient<BasePacket>("localhost");
                 client.ServerConnectionEstablished += () => { Console.WriteLine($"Server Connected"); };
                 client.ServerConnectionLost += () => { Console.WriteLine($"Server DisConnected"); };
-                client.PacketReceived += (s) => { Console.WriteLine($"Got message from Server: {s}"); };
+                client.PacketReceived += (s) => 
+                {
+                    if (s.HasRequestInfo())
+                        return;
+                    if (s.Message is not null)
+                        Console.WriteLine(s.Message); 
+                };
                 Console.WriteLine($"Connecting to {client.Address}");
                 var Result = await client.ConnectAsync();
                 Console.WriteLine($"Connection Success: {Result}");
@@ -56,7 +71,14 @@ namespace TDMUtilsTests
                     var Message = Console.ReadLine();
                     if (Message == null || Message == "exit")
                         break;
-                    await client.SendAsync(new ObjectWrappers.DisplayItem<string>(Message, $"Client: {Message}"));
+                    if (Message == "ping")
+                    {
+                        var Response = await client.RequestAsync("ping");
+                        if (!Response.RequestInfo!.IsError)
+                            Console.WriteLine($"Response: {Response.Message}");
+                        continue;
+                    }
+                    await client.SendAsync(new BasePacket() { Message = $"Client: {Message}" });
                 }
             }
         }
@@ -78,6 +100,13 @@ namespace TDMUtilsTests
         {
             AppletScreen testScreen = new(new TestApplet(), new TestApplet2());
             testScreen.Show();
+        }
+
+        public class BasePacket : ISimpleWebPacket
+        {
+            public SimpleRequestInfo? RequestInfo { get; set; } = null;
+
+            public string? Message { get; set; } = null;
         }
 
         public class TestApplet : Applet
