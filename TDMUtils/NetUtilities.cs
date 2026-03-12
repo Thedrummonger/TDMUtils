@@ -140,7 +140,7 @@ namespace TDMUtils
         {
             try
             {
-                while (!_cts.IsCancellationRequested && _ws.State == WebSocketState.Open)
+                while (!_cts.IsCancellationRequested && _ws?.State == WebSocketState.Open)
                 {
                     var msg = await PacketCodec.ReceiveFullBinaryMessageAsync(_ws, _cts.Token).ConfigureAwait(false);
                     if (msg == null) break;
@@ -240,7 +240,7 @@ namespace TDMUtils
         {
             while (!_cts.IsCancellationRequested)
             {
-                HttpListenerContext ctx = null;
+                HttpListenerContext? ctx = null;
 
                 try { ctx = await _listener.GetContextAsync().ConfigureAwait(false); }
                 catch { break; }

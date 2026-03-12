@@ -125,6 +125,14 @@ namespace TDMUtils.CLITools
                         CurrentPage = MiscUtilities.Clamp(CurrentPage + 1, 0, OptionPages.Length - 1);
                         CurrentSelection = MiscUtilities.Clamp(CurrentSelection, 0, OptionPages[CurrentPage].Length - 1);
                         break;
+                    case ConsoleKey.Home:
+                        CurrentPage = 0;
+                        CurrentSelection = 0;
+                        break;
+                    case ConsoleKey.End:
+                        CurrentPage = OptionPages.Length - 1;
+                        CurrentSelection = OptionPages[CurrentPage].Length - 1;
+                        break;
                     case ConsoleKey.Enter:
                     case ConsoleKey.Spacebar:
                         var SelectedValue = OptionPages[CurrentPage][CurrentSelection];
