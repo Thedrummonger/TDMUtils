@@ -134,9 +134,9 @@ namespace TDMUtils
         }
 
         //File Parsing
-        public static T LoadObjectFromFileOrDefault<T>(string FilePath)
+        public static T LoadObjectFromFileOrDefault<T>(string FilePath, FileStructure fileType = FileStructure.unknown)
         {
-            var Result = LoadObjectFromFileOrDefault<T>(FilePath, default, false);
+            var Result = LoadObjectFromFileOrDefault<T>(FilePath, default, false, fileType);
             return Result;
         }
         /// <summary>
