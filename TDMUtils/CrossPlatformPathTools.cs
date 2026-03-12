@@ -1,48 +1,81 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 namespace TDMUtils
 {
-    internal static class CrossPlatformPathTools
+    public static class CrossPlatformPathTools
     {
-        public static string GetAppDataRoot(string appFolderName) => Path.Combine(GetAppDataBase(), appFolderName);
-        public static bool IsRunningUnderProton() => string.Equals(Environment.UserName, "steamuser", StringComparison.OrdinalIgnoreCase);
+        public static string? FindExistingAppRoot(string appFolderName) => FindAllExistingAppRoots(appFolderName).FirstOrDefault();
 
-        public static string GetAppDataBase()
+        public static string[] FindAllExistingAppRoots(string appFolderName)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (string.IsNullOrWhiteSpace(appFolderName))
+                throw new ArgumentException("App folder name cannot be null or whitespace.", nameof(appFolderName));
+
+            var results = new List<string>();
+
+            foreach (var basePath in GetAllValidPaths())
             {
-                var winePath = TryGetWineConfigPath();
-                if (winePath != null)
-                    return winePath;
+                var full = Path.Combine(basePath, appFolderName);
+                if (Directory.Exists(full))
+                    results.Add(full);
             }
 
-            return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            return [.. results];
+        }
+        public static IEnumerable<string> GetAllValidPaths()
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(AppDataPathInfo.WineLinuxConfigFromUserPath) && seen.Add(AppDataPathInfo.WineLinuxConfigFromUserPath!))
+                yield return AppDataPathInfo.WineLinuxConfigFromUserPath!;
+
+            if (!string.IsNullOrWhiteSpace(AppDataPathInfo.WineLinuxConfigFromHomePath) && seen.Add(AppDataPathInfo.WineLinuxConfigFromHomePath!))
+                yield return AppDataPathInfo.WineLinuxConfigFromHomePath!;
+
+            if (!string.IsNullOrWhiteSpace(AppDataPathInfo.NativeAppDataPath) && seen.Add(AppDataPathInfo.NativeAppDataPath!))
+                yield return AppDataPathInfo.NativeAppDataPath!;
+        }
+    }
+
+    public static class AppDataPathInfo
+    {
+        public static bool IsWindows { get; } = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        public static bool IsLinux { get; } = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+        public static bool IsMacOS { get; } = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
+        public static string EnvironmentUserName => Environment.UserName ?? string.Empty;
+        public static bool IsRunningUnderProton => IsWindows && string.Equals(EnvironmentUserName, "steamuser", StringComparison.OrdinalIgnoreCase);
+        public static string? HomeEnvironmentVariable => Environment.GetEnvironmentVariable("HOME");
+
+        public static string? NativeAppDataPath => GetNativeAppDataPath();
+
+        public static string? WineLinuxConfigFromUserPath => GetWineLinuxConfigFromUserPath();
+        public static string? WineLinuxConfigFromHomePath => GetWineLinuxConfigFromHomePath();
+
+        public static string? RecommendedBasePath => IsWindows && WineLinuxConfigPath != null ? WineLinuxConfigPath : NativeAppDataPath;
+
+        public static string? WineLinuxConfigPath => WineLinuxConfigFromUserPath ?? WineLinuxConfigFromHomePath;
+
+        private static string? GetNativeAppDataPath()
+        {
+            var AppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            return Directory.Exists(AppDataPath) ? AppDataPath : null;
         }
 
-        private static string? TryGetWineConfigPath()
+        private static string? GetWineLinuxConfigFromUserPath()
         {
-            var user = Environment.UserName;
-            if (!string.IsNullOrEmpty(user))
-            {
-                var zUserConfig = Path.Combine(@"Z:\home", user, ".config");
-                if (Directory.Exists(zUserConfig))
-                    return zUserConfig;
-            }
+            if (!IsWindows || string.IsNullOrWhiteSpace(EnvironmentUserName)) return null;
+            string candidate = Path.Combine(@"Z:\home", EnvironmentUserName, ".config");
+            if (!Directory.Exists(candidate)) return null;
+            return candidate;
+        }
 
-            var home = Environment.GetEnvironmentVariable("HOME");
-            if (!string.IsNullOrEmpty(home))
-            {
-                var zHomeConfig = Path.Combine(@"Z:" + home.Replace("/", "\\"), ".config");
-                if (Directory.Exists(zHomeConfig))
-                    return zHomeConfig;
-            }
-
-            return null;
+        private static string? GetWineLinuxConfigFromHomePath()
+        {
+            if (!IsWindows || string.IsNullOrWhiteSpace(HomeEnvironmentVariable)) return null;
+            string normalizedHome = HomeEnvironmentVariable!.Replace('/', '\\').TrimStart('\\');
+            string candidate = Path.Combine(@"Z:\", normalizedHome, ".config");
+            if (!Directory.Exists(candidate)) return null;
+            return candidate;
         }
     }
 }
