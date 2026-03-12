@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using TDMUtils;
 using TDMUtils.CLITools;
@@ -18,8 +19,21 @@ namespace TDMUtilsTests
         /// </summary>
         public static void Main()
         {
-            TestWebServer().GetAwaiter().GetResult();
+            ColoredString.AppDeafultTextColor = Color.White;
+            //TestWebServer().GetAwaiter().GetResult();
             //TestApplets();
+            TestColoredString();
+        }
+
+        public static void TestColoredString()
+        {
+            ColoredString coloredString = new ColoredString();
+            coloredString.AddText("This").AddText("is", Color.Red).AddText("A", Color.Blue).AddText("Colored").AddText("String", Color.YellowGreen);
+            Console.WriteLine(coloredString.BuildAnsi());
+            Console.WriteLine(coloredString.BuildBbCode());
+            Console.WriteLine(coloredString.BuildHtml());
+            Console.WriteLine(coloredString.BuildRtf());
+            Console.WriteLine(coloredString.BuildTextMeshPro());
         }
 
         public static async Task TestWebServer()
@@ -74,7 +88,7 @@ namespace TDMUtilsTests
                     if (Message == "ping")
                     {
                         var Response = await client.RequestAsync("ping");
-                        if (!Response.RequestInfo!.IsError)
+                        if (!Response.RequestInfo!.IsError())
                             Console.WriteLine($"Response: {Response.Message}");
                         continue;
                     }
