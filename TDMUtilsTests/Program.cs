@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Archipelago.MultiClient.Net;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using TDMUtils;
@@ -22,7 +24,21 @@ namespace TDMUtilsTests
             ColoredString.AppDeafultTextColor = Color.White;
             //TestWebServer().GetAwaiter().GetResult();
             //TestApplets();
-            TestColoredString();
+            DumpAPData().GetAwaiter().GetResult();
+        }
+
+        public static async Task DumpAPData()
+        {
+            var Session = ArchipelagoSessionFactory.CreateSession("");
+            var Result = Session.TryConnectAndLogin("", "", Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, new(0,6,1));
+            if (Result is LoginFailure failure)
+                throw new Exception(string.Join('\n', failure.Errors));
+
+            var Locations = await Session.Locations.ScoutLocationsAsync([.. Session.Locations.AllLocations]);
+            var Players = Session.Players.AllPlayers;
+            File.WriteAllText("APLocations.json", Locations.ToFormattedJson());
+            File.WriteAllText("APPlayers.json", Players.ToFormattedJson());
+            File.WriteAllText("DataStore.json", Session.DataStorage.ToFormattedJson());
         }
 
         public static void TestColoredString()

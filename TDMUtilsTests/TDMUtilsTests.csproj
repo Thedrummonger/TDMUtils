@@ -11,4 +11,10 @@
     <ProjectReference Include="..\TDMUtils\TDMUtils.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Archipelago.MultiClient.Net">
+      <HintPath>..\TDMUtils\Archipelago\net6.0\Archipelago.MultiClient.Net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
