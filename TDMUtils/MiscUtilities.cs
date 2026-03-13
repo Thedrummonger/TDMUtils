@@ -92,29 +92,32 @@ namespace TDMUtils
             Debug.WriteLine(DataFileUtilities.ToFormattedJson(o));
         }
         /// <summary>
-        /// Evaluates whether an object is 'truthy' or 'falsy', similar to Python.
-        /// If the value cannot be determined, the provided default value is returned.
+        /// Evaluates whether an object is truthy or falsy using Python-like semantics.
         /// </summary>
+        /// <remarks>
+        /// The following rules are applied:
+        /// <list type="bullet">
+        /// <item><description><c>null</c> is falsy.</description></item>
+        /// <item><description><see cref="bool"/> values are returned as-is.</description></item>
+        /// <item><description>Strings are truthy if their length is greater than zero; empty strings are falsy.</description></item>
+        /// <item><description>Numeric values (via <see cref="IConvertible"/>) are falsy if equal to zero; otherwise truthy.</description></item>
+        /// <item><description>Collections are falsy if empty; otherwise truthy.</description></item>
+        /// <item><description>All other objects are considered truthy.</description></item>
+        /// </list>
+        /// </remarks>
         /// <param name="value">The object to evaluate.</param>
-        /// <param name="defaultValue">The default value to return if the evaluation is indeterminate.</param>
-        /// <returns>True if the object is considered 'truthy', false if 'falsy', or the provided default value.</returns>
-        public static bool? IsTruthy(this object? value, bool? defaultValue = null)
+        /// <returns><c>true</c> if the object is considered truthy; otherwise, <c>false</c>.</returns>
+        public static bool IsTruthy(this object? value)
         {
-            if (value is null) return defaultValue; // Null is undefined
-
             return value switch
             {
-                bool b => b,                           // True and False as-is
-                string s => !string.IsNullOrWhiteSpace(s) && s.Trim().ToLowerInvariant() switch
-                {
-                    "false" or "no" or "off" or "0" => false,  // Common falsy values
-                    "true" or "yes" or "on" or "1" => true,    // Common truthy values
-                    _ => true // Any other non-empty string is truthy
-                },
-                IConvertible convertible when TryAsDoubleValue(convertible, out double result)
-                    => result != 0, // Convert any number type to double for truthy evaluation
-                IEnumerable<object> collection => collection.Any(), // Non-empty generic collections are truthy
-                _ => defaultValue // Anything else falls back to the default value
+                null => false,
+                bool b => b,
+                string s => s.Length > 0,
+                IConvertible convertible when convertible.TryAsDoubleValue(out double result) => result != 0,
+                System.Collections.ICollection collection => collection.Count > 0,
+                System.Collections.IEnumerable collection => collection.GetEnumerator().MoveNext(),
+                _ => true
             };
         }
         /// <summary>
