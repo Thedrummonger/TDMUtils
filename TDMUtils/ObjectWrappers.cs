@@ -15,14 +15,10 @@ namespace TDMUtils
             public override string ToString() => Display;
         }
 
-        public static List<DisplayItem<T>> EnumDisplayItemList<T>() where T : Enum
-        {
-            return [.. Enum.GetValues(typeof(T)).Cast<T>().Select(e => new DisplayItem<T>(e, e.GetDescription()))];
-        }
+        public static List<DisplayItem<T>> EnumDisplayItemList<T>() where T : struct, Enum =>
+            [.. EnumerableUtilities.EnumAsArray<T>().Select(e => new DisplayItem<T>(e, e.GetDescription()))];
 
-        public static List<DisplayItem<T>> ToDisplayItemList<T>(this IEnumerable<T> items, Func<T, string> displaySelector)
-        {
-            return [.. items.Select(item => new DisplayItem<T>(item, displaySelector(item)))];
-        }
+        public static List<DisplayItem<T>> ToDisplayItemList<T>(this IEnumerable<T> items, Func<T, string> displaySelector) =>
+            [.. items.Select(item => new DisplayItem<T>(item, displaySelector(item)))];
     }
 }

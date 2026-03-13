@@ -10,13 +10,57 @@ namespace TDMUtils
     public static class MiscUtilities
     {
         /// <summary>
-        /// Creates a deep copy of an object using serialization.
-        /// Deprecated: Use <see cref="SerializeConvert{T}(object)"/> instead.
+        /// Creates a deep copy of an object by serializing and deserializing it.
         /// </summary>
+        /// <remarks>
+        /// This method performs a full deep clone of the object graph.
+        /// <para>
+        /// If the <c>MessagePack</c> library is present at runtime, a high-performance
+        /// binary clone is used automatically (contractless mode).
+        /// Otherwise, the method falls back to JSON-based cloning via
+        /// <see cref="SerializeConvert{T}(object)"/>.
+        /// </para>
+        /// </remarks>
         /// <typeparam name="T">The type of the object to clone.</typeparam>
         /// <param name="obj">The object to clone.</param>
-        /// <returns>A deep copy of the given object.</returns>
-        public static T DeepClone<T>(this T obj) => obj!.SerializeConvert<T>()!;
+        /// <returns>
+        /// A new instance that is a deep copy of <paramref name="obj"/>.
+        /// </returns>
+        public static T DeepClone<T>(this T obj)
+        {
+            if (_messagePackClone != null)
+                return (T)_messagePackClone(obj!);
+
+            return obj!.SerializeConvert<T>()!;
+        }
+        private static readonly Func<object, object>? _messagePackClone = CreateMessagePackCloner();
+        private static Func<object, object>? CreateMessagePackCloner()
+        {
+            var serializerType = Type.GetType("MessagePack.MessagePackSerializer, MessagePack");
+            var resolverType = Type.GetType("MessagePack.Resolvers.ContractlessStandardResolver, MessagePack");
+            var optionsType = Type.GetType("MessagePack.MessagePackSerializerOptions, MessagePack");
+            if (serializerType == null || resolverType == null || optionsType == null) return null;
+            try
+            {
+                var resolverInstance = resolverType.GetProperty("Instance")!.GetValue(null);
+                var standardOptions = optionsType.GetProperty("Standard")!.GetValue(null);
+                var withResolver = optionsType.GetMethod("WithResolver")!;
+                var options = withResolver.Invoke(standardOptions, [resolverInstance]);
+                var serialize = serializerType.GetMethod("Serialize", [typeof(object), optionsType]);
+                var deserialize = serializerType.GetMethod("Deserialize", [typeof(byte[]), optionsType]);
+                if (serialize == null || deserialize == null)return null;
+                return obj =>
+                {
+                    var bytes = (byte[])serialize.Invoke(null, [obj, options])!;
+                    return deserialize.Invoke(null, [bytes, options])!;
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
 
         /// <summary>
         /// Converts an object to a specified type using JSON serialization and deserialization.

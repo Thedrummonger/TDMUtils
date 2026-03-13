@@ -45,8 +45,8 @@ namespace TDMUtils
 #endif
         private static byte[] CompressByte(byte[] bytes)
         {
-            using var memoryStream = new MemoryStream();
-            using (var gzipStream = new GZipStream(memoryStream, BestCompression))
+            using var memoryStream = new MemoryStream(bytes.Length);
+            using (var gzipStream = new GZipStream(memoryStream, BestCompression, leaveOpen: true))
             {
                 gzipStream.Write(bytes, 0, bytes.Length);
             }
@@ -55,43 +55,43 @@ namespace TDMUtils
         private static byte[] DecompressByte(byte[] bytes)
         {
             using var memoryStream = new MemoryStream(bytes);
-
-            using var outputStream = new MemoryStream();
-            using (var decompressStream = new GZipStream(memoryStream, CompressionMode.Decompress))
-            {
-                decompressStream.CopyTo(outputStream);
-            }
+            using var decompressStream = new GZipStream(memoryStream, CompressionMode.Decompress);
+            using var outputStream = new MemoryStream(bytes.Length * 2);
+            decompressStream.CopyTo(outputStream);
             return outputStream.ToArray();
         }
 
-        private static byte[] Compress(string String)
-        {
-            byte[] dataToCompress = Encoding.UTF8.GetBytes(String);
-            byte[] compressedData = CompressByte(dataToCompress);
-            return compressedData;
-        }
+        private static byte[] Compress(string str) => CompressByte(Encoding.UTF8.GetBytes(str));
 
         private static string GetBytesAsString(byte[] byteData)
         {
             return Convert.ToBase64String(byteData);
         }
 
-        public static CompressionFormat GetFileCompressionFormat<T>(string FilePath, bool PrioritizeCompressed)
+        public static CompressionFormat GetFileCompressionFormat<T>(string filePath, bool prioritizeCompressed)
         {
-            if (!File.Exists(FilePath)) { return CompressionFormat.error; }
-            string Content = File.ReadAllText(FilePath);
-            var ByteContent = File.ReadAllBytes(FilePath);
-            if (PrioritizeCompressed)
+            if (!File.Exists(filePath))
+                return CompressionFormat.error;
+
+            byte[] fileBytes = File.ReadAllBytes(filePath);
+
+            if (prioritizeCompressed)
             {
-                if (TestForByteFile<T>(ByteContent)) { return CompressionFormat.Byte; };
-                if (TestForUncompressedFile<T>(Content)) { return CompressionFormat.None; };
+                if (TestForByteFile<T>(fileBytes))
+                    return CompressionFormat.Byte;
             }
-            else
-            {
-                if (TestForUncompressedFile<T>(Content)) { return CompressionFormat.None; };
-                if (TestForByteFile<T>(ByteContent)) { return CompressionFormat.Byte; };
-            }
-            if (TestForCompressedFile<T>(Content)) { return CompressionFormat.Base64; }; //This type is never used but check for it just incase
+
+            string content = Encoding.UTF8.GetString(fileBytes);
+
+            if (TestForUncompressedFile<T>(content))
+                return CompressionFormat.None;
+
+            if (!prioritizeCompressed && TestForByteFile<T>(fileBytes))
+                return CompressionFormat.Byte;
+
+            if (TestForCompressedFile<T>(content))
+                return CompressionFormat.Base64;
+
             return CompressionFormat.error;
         }
 

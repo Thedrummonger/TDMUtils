@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace TDMUtils
 {
-    public class NewtonsoftExtensions
+    public static class NewtonsoftExtensions
     {
 
         public readonly static Newtonsoft.Json.JsonSerializerSettings DefaultSerializerSettings = new()
@@ -17,17 +17,20 @@ namespace TDMUtils
             NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
             Converters = { new Newtonsoft.Json.Converters.StringEnumConverter(), new IPConverter() }
         };
-        public class IPConverter : JsonConverter<IPAddress>
+
+        public sealed class IPConverter : JsonConverter<IPAddress>
         {
-            public override void WriteJson(JsonWriter writer, IPAddress value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, IPAddress? value, JsonSerializer serializer)
             {
-                writer.WriteValue(value.ToString());
+                writer.WriteValue(value?.ToString());
             }
 
-            public override IPAddress ReadJson(JsonReader reader, Type objectType, IPAddress existingValue, bool hasExistingValue, JsonSerializer serializer)
+            public override IPAddress? ReadJson(JsonReader reader, Type objectType, IPAddress? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                var s = (string)reader.Value;
-                return IPAddress.Parse(s);
+                if (reader.TokenType == JsonToken.Null) return null;
+                if (reader.TokenType != JsonToken.String) throw new JsonSerializationException($"Unexpected token {reader.TokenType} when parsing IPAddress.");
+                var s = (string?)reader.Value;
+                return string.IsNullOrWhiteSpace(s) ? null : IPAddress.Parse(s);
             }
         }
     }

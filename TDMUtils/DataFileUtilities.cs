@@ -21,7 +21,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="Path"></param>
         /// <returns></returns>
-        public static T DeserializeJsonFile<T>(string Path)
+        public static T? DeserializeJsonFile<T>(string Path)
         {
             return JsonConvert.DeserializeObject<T>(File.ReadAllText(Path));
         }
@@ -31,7 +31,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="String"></param>
         /// <returns></returns>
-        public static T DeserializeJsonString<T>(string String)
+        public static T? DeserializeJsonString<T>(string String)
         {
             return JsonConvert.DeserializeObject<T>(String);
         }
@@ -41,7 +41,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="String"></param>
         /// <returns></returns>
-        public static T DeserializeJsonString<T>(IEnumerable<string> String)
+        public static T? DeserializeJsonString<T>(IEnumerable<string> String)
         {
             return JsonConvert.DeserializeObject<T>(string.Join(Environment.NewLine, String));
         }
@@ -59,7 +59,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="Path"></param>
         /// <returns></returns>
-        public static T DeserializeCSVFile<T>(string Path)
+        public static T? DeserializeCSVFile<T>(string Path)
         {
             var Json = ConvertCsvFileToJsonObject(File.ReadAllLines(Path));
             return JsonConvert.DeserializeObject<T>(Json);
@@ -70,7 +70,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="String"></param>
         /// <returns></returns>
-        public static T DeserializeCSVString<T>(string String)
+        public static T? DeserializeCSVString<T>(string String)
         {
             var Json = ConvertCsvFileToJsonObject(StringUtilities.SplitAtNewLine(String));
             return JsonConvert.DeserializeObject<T>(Json);
@@ -81,7 +81,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="String"></param>
         /// <returns></returns>
-        public static T DeserializeCSVString<T>(IEnumerable<string> String)
+        public static T? DeserializeCSVString<T>(IEnumerable<string> String)
         {
             var Json = ConvertCsvFileToJsonObject(String.ToArray());
             return JsonConvert.DeserializeObject<T>(Json);
@@ -94,7 +94,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="Path"></param>
         /// <returns></returns>
-        public static T DeserializeYAMLFile<T>(string Path)
+        public static T? DeserializeYAMLFile<T>(string Path)
         {
             var Json = ConvertYamlStringToJsonString(File.ReadAllText(Path), true);
             return JsonConvert.DeserializeObject<T>(Json);
@@ -105,7 +105,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="String"></param>
         /// <returns></returns>
-        public static T DeserializeYAMLString<T>(string String)
+        public static T? DeserializeYAMLString<T>(string String)
         {
             var Json = ConvertYamlStringToJsonString(String, true);
             return JsonConvert.DeserializeObject<T>(Json);
@@ -116,7 +116,7 @@ namespace TDMUtils
         /// <typeparam name="T"></typeparam>
         /// <param name="String"></param>
         /// <returns></returns>
-        public static T DeserializeYAMLString<T>(IEnumerable<string> String)
+        public static T? DeserializeYAMLString<T>(IEnumerable<string> String)
         {
             var Json = ConvertYamlStringToJsonString(string.Join(Environment.NewLine, String), true);
             return JsonConvert.DeserializeObject<T>(Json);
@@ -134,7 +134,7 @@ namespace TDMUtils
         }
 
         //File Parsing
-        public static T LoadObjectFromFileOrDefault<T>(string FilePath, FileStructure fileType = FileStructure.unknown)
+        public static T? LoadObjectFromFileOrDefault<T>(string FilePath, FileStructure fileType = FileStructure.unknown)
         {
             var Result = LoadObjectFromFileOrDefault<T>(FilePath, default, false, fileType);
             return Result;
@@ -147,9 +147,9 @@ namespace TDMUtils
         /// <param name="Default">The default state of the object</param>
         /// <param name="WriteDefaultToFileIfError">Should the given default value be written to the given path if the file is missing or corrupted</param>
         /// <returns></returns>
-        public static T LoadObjectFromFileOrDefault<T>(string FilePath, T Default, bool WriteDefaultToFileIfError, FileStructure fileType = FileStructure.unknown, bool logging = false)
+        public static T? LoadObjectFromFileOrDefault<T>(string FilePath, T? Default, bool WriteDefaultToFileIfError, FileStructure fileType = FileStructure.unknown, bool logging = false)
         {
-            T result = Default;
+            T? result = Default;
             bool FileError = false;
 
             if (fileType == FileStructure.unknown)
@@ -205,7 +205,7 @@ namespace TDMUtils
                 Debug.WriteLine($"File did not exit {FilePath}");
                 FileError = true;
             }
-            if (FileError && WriteDefaultToFileIfError)
+            if (FileError && WriteDefaultToFileIfError && result != null)
             {
                 switch (fileType)
                 {

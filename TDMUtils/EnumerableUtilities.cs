@@ -31,30 +31,57 @@ namespace TDMUtils
         /// <summary>
         /// Gets a value from a dictionary at the given key and casts it to the given type
         /// </summary>
-        /// <typeparam name="Y">The the object type of the dictionaries key</typeparam>
+        /// <typeparam name="TKey">The the object type of the dictionaries key</typeparam>
         /// <typeparam name="T">The Object the value will be cast to</typeparam>
         /// <param name="source">The source dictionary</param>
         /// <param name="Key">The key to get value of</param>
         /// <returns></returns>
-        public static T GetValueAs<Y, T>(this Dictionary<Y, object> source, Y Key)
+        public static T? GetValueAs<TKey, T>(this IDictionary<TKey, object> source, TKey key)
         {
-            if (!source.TryGetValue(Key, out object value)) { return default; }
-            return MiscUtilities.SerializeConvert<T>(value);
+            if (!source.TryGetValue(key, out var value) || value is null) return default;
+            if (value is T typed) return typed;
+            try
+            {
+                var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+
+                if (targetType.IsEnum)
+                {
+                    if (value is string enumText) return (T)Enum.Parse(targetType, enumText, ignoreCase: true);
+                    return (T)Enum.ToObject(targetType, value);
+                }
+                return (T)Convert.ChangeType(value, targetType);
+            }
+            catch
+            {
+                return value.SerializeConvert<T>();
+            }
         }
         /// <summary>
         /// Creates an array containing the values of the given Enum
         /// </summary>
         /// <typeparam name="T">The Enum as a type</typeparam>
         /// <returns>An array of <Enum></returns>
-        public static IEnumerable<T> EnumAsArray<T>() => 
-            Enum.GetValues(typeof(T)).Cast<T>().ToArray();
+        public static T[] EnumAsArray<T>() where T : struct, Enum
+        {
+#if NET5_0_OR_GREATER
+            return Enum.GetValues<T>();
+#else
+            return (T[])Enum.GetValues(typeof(T));
+#endif
+        }
         /// <summary>
         /// Creates an array containing the values of the given Enum as strings
         /// </summary>
         /// <typeparam name="T">The Enum as a type</typeparam>
         /// <returns>An array of <string></returns>
-        public static IEnumerable<string> EnumAsStringArray<T>() => 
-            EnumAsArray<T>().Select(x => x.ToString()).ToArray();
+        public static string[] EnumAsStringArray<T>() where T : struct, Enum
+        {
+#if NET5_0_OR_GREATER
+            return Enum.GetNames<T>();
+#else
+            return Enum.GetNames(typeof(T));
+#endif
+        }
 #if NET6_0_OR_GREATER
         /// <summary>
         /// Gets the values from a list in a certain range
@@ -77,9 +104,14 @@ namespace TDMUtils
         /// <param name="Dict">The source dictionary</param>
         /// <param name="Value">The key to check for</param>
         /// <param name="Default">The value to assign to the given key</param>
-        public static void SetIfEmpty<T, V>(this Dictionary<T, V> Dict, T Value, V Default)
+        public static TValue SetIfEmpty<TKey, TValue>(this Dictionary<TKey, TValue> dict, TKey key, TValue defaultValue)
         {
-            if (!Dict.ContainsKey(Value)) { Dict[Value] = Default; }
+#if NET5_0_OR_GREATER
+            dict.TryAdd(key, defaultValue);
+#else
+            if (!dict.ContainsKey(key)) dict[key] = defaultValue;
+#endif
+            return dict[key];
         }
         /// <summary>
         /// Picks a random element from a list
@@ -209,8 +241,7 @@ namespace TDMUtils
             return selected.Pool;
         }
 
-        public static T? GetAttribute<T>(this Enum value)
-        where T : Attribute
+        public static T? GetAttribute<T>(this Enum value) where T : Attribute
         {
             var field = value.GetType().GetField(value.ToString(), BindingFlags.Public | BindingFlags.Static);
             return field?.GetCustomAttribute<T>(inherit: false);
@@ -266,12 +297,11 @@ namespace TDMUtils
             return list[next];
         }
 
-#if NET6_0_OR_GREATER
-        public static IEnumerable<T[]> Chunk<T>(IEnumerable<T> source, int size)
-            => source.Chunk(size);
-#else
         public static IEnumerable<T[]> Chunk<T>(this IEnumerable<T> source, int size)
         {
+#if NET5_0_OR_GREATER
+            return Enumerable.Chunk(source, size);
+#else
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (size <= 0) throw new ArgumentOutOfRangeException(nameof(size));
 
@@ -289,8 +319,9 @@ namespace TDMUtils
 
             if (buffer.Count != 0)
                 yield return buffer.ToArray();
-        }
 #endif
+        }
+
         public static T[] TakePortion<T>(T[] source, int count, bool fromEnd)
         {
             if (count >= source.Length) return [.. source];
