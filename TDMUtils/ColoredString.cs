@@ -18,6 +18,7 @@ namespace TDMUtils
         public ColoredString(ColoredString other)
         {
             words = [.. other.words];
+            _DefaultColor = other._DefaultColor;
         }
         /// <summary>
         /// Initializes an empty <see cref="ColoredString"/>.
