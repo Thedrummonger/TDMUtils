@@ -14,4 +14,39 @@
     <PackageReference Include="YamlDotNet" Version="15.1.4" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+  	<Reference Include="Archipelago.MultiClient.Net">
+  		<HintPath>Archipelago\net6.0\Archipelago.MultiClient.Net.dll</HintPath>
+  		<Private>true</Private>
+  	</Reference>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  	<Reference Include="Archipelago.MultiClient.Net">
+  		<HintPath>Archipelago\netstandard2.0\Archipelago.MultiClient.Net.dll</HintPath>
+  		<Private>true</Private>
+  	</Reference>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+  	<Reference Include="Archipelago.MultiClient.Net">
+		<HintPath>Archipelago\net6.0\Archipelago.MultiClient.Net.dll</HintPath>
+  		<Private>true</Private>
+  	</Reference>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+  	<Reference Include="Archipelago.MultiClient.Net">
+  		<HintPath>Archipelago\net45\Archipelago.MultiClient.Net.dll</HintPath>
+  		<Private>true</Private>
+  	</Reference>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+  	<Reference Include="Archipelago.MultiClient.Net">
+  		<HintPath>Archipelago\net45\Archipelago.MultiClient.Net.dll</HintPath>
+  		<Private>true</Private>
+  	</Reference>
+  </ItemGroup>
+
 </Project>
