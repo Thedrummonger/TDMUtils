@@ -259,5 +259,22 @@ namespace TDMUtils
 
             return JsonConvert.SerializeObject(listObjResult, NewtonsoftExtensions.DefaultSerializerSettings);
         }
+
+        /// <summary>
+        /// Determines whether a given JSON string can be deserialized into the specified type.
+        /// </summary>
+        /// <typeparam name="T">The target type to check against.</typeparam>
+        /// <param name="json">The JSON string to validate.</param>
+        /// <returns>True if the JSON can be deserialized into the given type; otherwise, false.</returns>
+        public static bool IsJsonTypeOf<T>(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return false;
+            try
+            {
+                _ = JsonConvert.DeserializeObject<T>(json);
+                return true;
+            }
+            catch { return false; }
+        }
     }
 }

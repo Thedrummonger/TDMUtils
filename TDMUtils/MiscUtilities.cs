@@ -111,11 +111,9 @@ namespace TDMUtils
                     "true" or "yes" or "on" or "1" => true,    // Common truthy values
                     _ => true // Any other non-empty string is truthy
                 },
-                IConvertible convertible when TryConvert(convertible, out double result)
-                    => result > 0, // Convert any number type to double for truthy evaluation
+                IConvertible convertible when TryAsDoubleValue(convertible, out double result)
+                    => result != 0, // Convert any number type to double for truthy evaluation
                 IEnumerable<object> collection => collection.Any(), // Non-empty generic collections are truthy
-                System.Collections.IEnumerable nonGenericCollection => nonGenericCollection.GetEnumerator().MoveNext(), // Non-generic collections
-                _ when value.GetType().IsValueType && value.GetType().GetFields().All(f => f.GetValue(value) == null) => false, // Empty struct instances
                 _ => defaultValue // Anything else falls back to the default value
             };
         }
@@ -128,97 +126,111 @@ namespace TDMUtils
         /// <exception cref="ArgumentException">Thrown if conversion fails.</exception>
         public static int AsIntValue(this object value)
         {
-            return value switch
-            {
-                int i => i,                 // Already an int
-                bool b => b ? 1 : 0,        // Convert boolean to 1 or 0
-                string s when int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)
-                    => result,              // Convert valid string representations of integers
-                IConvertible convertible when TryConvert(convertible, out double result)
-                    => (int)result,              // Convert any numeric type
-                _ => throw new ArgumentException($"{value?.GetType().Name} '{value}' cannot be converted to an int.")
-            };
+            if (value.TryAsIntValue(out int result))
+                return result;
+
+            throw new ArgumentException($"{value?.GetType().Name} '{value}' cannot be converted to an int.");
         }
 
         /// <summary>
-        /// Converts an object to a 64-bit integer representation.
+        /// Converts an object to a 64-bit floating-point representation.
+        /// Throws an exception if conversion is not possible.
         /// </summary>
-        /// <param name="value"></param>
-        /// <param name="result"></param>
-        /// <returns></returns>
-        private static bool TryConvert(IConvertible value, out double result)
+        /// <param name="value">The object to convert.</param>
+        /// <returns>A double representation of the object.</returns>
+        /// <exception cref="ArgumentException">Thrown if conversion fails.</exception>
+        public static double AsDoubleValue(this object value)
         {
-            try
+            if (value.TryAsDoubleValue(out double result))
+                return result;
+
+            throw new ArgumentException($"{value?.GetType().Name} '{value}' cannot be converted to a double.");
+        }
+
+        /// <summary>
+        /// Attempts to convert an object to a 32-bit integer representation.
+        /// </summary>
+        /// <param name="value">The object to convert.</param>
+        /// <param name="result">
+        /// When this method returns, contains the converted integer value if the conversion succeeded;
+        /// otherwise, contains 0.
+        /// </param>
+        /// <returns>True if the conversion succeeded; otherwise, false.</returns>
+        public static bool TryAsIntValue(this object value, out int result)
+        {
+            switch (value)
             {
-                result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
-                return true;
+                case int i:
+                    result = i;
+                    return true;
+
+                case bool b:
+                    result = b ? 1 : 0;
+                    return true;
+
+                case string s:
+                    return int.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out result);
+
+                case IConvertible convertible:
+                    try
+                    {
+                        result = Convert.ToInt32(convertible, CultureInfo.InvariantCulture);
+                        return true;
+                    }
+                    catch
+                    {
+                        result = 0;
+                        return false;
+                    }
+
+                default:
+                    result = 0;
+                    return false;
             }
-            catch
+        }
+
+        /// <summary>
+        /// Attempts to convert an object to a double-precision floating-point representation.
+        /// </summary>
+        /// <param name="value">The object to convert.</param>
+        /// <param name="result">
+        /// When this method returns, contains the converted double value if the conversion succeeded;
+        /// otherwise, contains 0.
+        /// </param>
+        /// <returns>True if the conversion succeeded; otherwise, false.</returns>
+        public static bool TryAsDoubleValue(this object value, out double result)
+        {
+            switch (value)
             {
-                result = 0;
-                return false;
+                case double d:
+                    result = d;
+                    return true;
+
+                case bool b:
+                    result = b ? 1d : 0d;
+                    return true;
+
+                case string s:
+                    return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out result);
+
+                case IConvertible convertible:
+                    try
+                    {
+                        result = Convert.ToDouble(convertible, CultureInfo.InvariantCulture);
+                        return true;
+                    }
+                    catch
+                    {
+                        result = 0;
+                        return false;
+                    }
+
+                default:
+                    result = 0;
+                    return false;
             }
         }
 
-
-        /// <summary>
-        /// Determines whether a given JSON string can be deserialized into the specified type.
-        /// </summary>
-        /// <typeparam name="T">The target type to check against.</typeparam>
-        /// <param name="json">The JSON string to validate.</param>
-        /// <returns>True if the JSON can be deserialized into the given type; otherwise, false.</returns>
-        public static bool IsJsonTypeOf<T>(string json)
-        {
-            if (string.IsNullOrWhiteSpace(json)) return false;
-            try
-            {
-                _ = JsonConvert.DeserializeObject<T>(json);
-                return true;
-            }
-            catch { return false; }
-        }
-        /// <summary>
-        /// Checks whether a dynamic object contains a specified property.
-        /// </summary>
-        /// <param name="obj">The object to inspect.</param>
-        /// <param name="propertyName">The name of the property to check.</param>
-        /// <returns>True if the object has the specified property; otherwise, false.</returns>
-        public static bool HasProperty(object obj, string propertyName)
-        {
-            if (obj is null || string.IsNullOrWhiteSpace(propertyName)) return false;
-
-            if (obj is ExpandoObject e)
-                return ((IDictionary<string, object>)e).ContainsKey(propertyName);
-
-            return obj.GetType().GetProperty(propertyName) != null;
-        }
-        /// <summary>
-        /// Checks whether a dynamic object contains a specified method.
-        /// </summary>
-        /// <param name="obj">The object to inspect.</param>
-        /// <param name="methodName">The name of the method to check.</param>
-        /// <returns>True if the object has the specified method; otherwise, false.</returns>
-        public static bool HasMethod(object obj, string methodName)
-        {
-            if (obj is null || string.IsNullOrWhiteSpace(methodName)) return false;
-            return obj.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance) != null;
-        }
-        /// <summary>
-        /// Determines whether a thread is alive and the associated object is a valid Windows Forms control.
-        /// Ensures that if the object is a Windows Forms control, its handle is created.
-        /// </summary>
-        /// <param name="thread">The thread to check.</param>
-        /// <param name="control">The Windows Forms control to verify.</param>
-        /// <returns>True if the thread is alive and the control is valid; otherwise, false.</returns>
-        public static bool IsWinFormsControlAccessible(Thread? thread, object? control)
-        {
-            if (thread == null || control == null) return false;
-
-            var prop = control.GetType().GetProperty("IsHandleCreated", BindingFlags.Public | BindingFlags.Instance);
-            bool isControlValid = prop == null || (prop.GetValue(control, null) is bool b && b);
-
-            return thread.IsAlive && isControlValid;
-        }
         public static T Clamp<T>(T value, T min, T max) where T : IComparable<T>
         {
             if (value.CompareTo(min) < 0) return min;
