@@ -115,8 +115,18 @@ namespace TDMUtils
         public ColoredString WithDefaultColor(Color color) 
         { 
             _DefaultColor = color; 
-            return this; 
+            return this;
         }
+
+        /// <summary>
+        /// Builds a string from this <see cref="ColoredString"/> object using a custom formatter
+        /// with optional document prefix and suffix.
+        /// </summary>
+        /// <param name="formatter">Formats each text segment with its resolved color.</param>
+        /// <param name="prefix">Optional function that appends a document prefix.</param>
+        /// <param name="suffix">Optional function that appends a document suffix.</param>
+        /// <returns>The formatted string.</returns>
+        public string Build(Func<string, Color, string> formatter, Func<string>? prefix = null, Func<string>? suffix = null) => Build([this], formatter, prefix, suffix);
 
         /// <summary>
         /// Builds an ANSI-formatted string that will display colored text in supported console environments.
