@@ -1,9 +1,12 @@
 ﻿using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using TDMUtils;
 using TDMUtils.CLITools;
 using TDMUtils.Tokenizer;
@@ -21,7 +24,7 @@ namespace TDMUtilsTests
         /// </summary>
         public static void Main()
         {
-            ColoredString.AppDeafultTextColor = Color.White;
+            ColoredString.AppDeafultTextColor = System.Drawing.Color.White;
             //TestWebServer().GetAwaiter().GetResult();
             //TestApplets();
             DumpAPData().GetAwaiter().GetResult();
@@ -29,22 +32,25 @@ namespace TDMUtilsTests
 
         public static async Task DumpAPData()
         {
-            var Session = ArchipelagoSessionFactory.CreateSession("");
-            var Result = Session.TryConnectAndLogin("", "", Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, new(0,6,1));
+            Directory.CreateDirectory("Dumps");
+            ArchipelagoSession Session = ArchipelagoSessionFactory.CreateSession("");
+            LoginResult Result = Session.TryConnectAndLogin("", "", Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems, new(0, 6, 1));
             if (Result is LoginFailure failure)
                 throw new Exception(string.Join('\n', failure.Errors));
 
-            var Locations = await Session.Locations.ScoutLocationsAsync([.. Session.Locations.AllLocations]);
-            var Players = Session.Players.AllPlayers;
-            File.WriteAllText("APLocations.json", Locations.ToFormattedJson());
-            File.WriteAllText("APPlayers.json", Players.ToFormattedJson());
-            File.WriteAllText("DataStore.json", Session.DataStorage.ToFormattedJson());
+            LoginSuccessful loginSuccessful = (Result as LoginSuccessful)!;
+            var SessionInfo = await TDMUtils.Archipelago.MultiClientExtensions.APSeedPlayerData.FromSessionAsync(Session, loginSuccessful.SlotData);
+            File.WriteAllText(Path.Combine("Dumps", "SeedData.json"), SessionInfo.ToFormattedJson());
+
+            var RunTimeData = await TDMUtils.Archipelago.MultiClientExtensions.APClientRuntimeData.FromSessionAsync(Session);
+            File.WriteAllText(Path.Combine("Dumps", "RuntimeData.json"), RunTimeData.ToFormattedJson());
         }
+
 
         public static void TestColoredString()
         {
             ColoredString coloredString = new ColoredString();
-            coloredString.AddText("This").AddText("is", Color.Red).AddText("A", Color.Blue).AddText("Colored").AddText("String", Color.YellowGreen);
+            coloredString.AddText("This").AddText("is", System.Drawing.Color.Red).AddText("A", System.Drawing.Color.Blue).AddText("Colored").AddText("String", System.Drawing.Color.YellowGreen);
             Console.WriteLine(coloredString.BuildAnsi());
             Console.WriteLine(coloredString.BuildBbCode());
             Console.WriteLine(coloredString.BuildHtml());
