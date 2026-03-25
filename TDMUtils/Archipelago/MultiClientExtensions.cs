@@ -2,6 +2,7 @@
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -227,5 +228,68 @@ namespace TDMUtils.Archipelago
             ((System.Collections.IEnumerable)lookup).Cast<object>().ToDictionary(
                 x => ReflectionTools.GetPropertyValue<long>(x, "Value"),
                 x => ReflectionTools.GetPropertyValue<string>(x, "Key")!);
+
+
+    }
+    public static class APDataPackageCache
+    {
+        static readonly string CacheFolder =
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Archipelago",
+                "Cache",
+                "datapackage");
+
+        public static bool TryGetCachedGameData(string game, string checksum, out GameData gameData)
+        {
+            string folderPath = Path.Combine(CacheFolder, MakeSafeFileName(game));
+            string filePath = Path.Combine(folderPath, $"{MakeSafeFileName(checksum)}.json");
+
+            if (!File.Exists(filePath))
+            {
+                gameData = null!;
+                return false;
+            }
+
+            try
+            {
+                gameData = JsonConvert.DeserializeObject<GameData>(File.ReadAllText(filePath))!;
+                return gameData != null && string.Equals(gameData.Checksum, checksum, StringComparison.Ordinal);
+            }
+            catch
+            {
+                gameData = null!;
+                return false;
+            }
+        }
+
+        public static async Task<GameData?> GetGameData(string game, string checksum, Func<string, string, Task<GameData?>> getter)
+        {
+            if (TryGetCachedGameData(game, checksum, out var cached))
+                return cached;
+
+            var gameData = await getter(game, checksum);
+
+            if (gameData != null)
+                SaveCachedGameData(game, gameData);
+
+            return gameData;
+        }
+
+        public static void SaveCachedGameData(string game, GameData gameData)
+        {
+            string folderPath = Path.Combine(CacheFolder, MakeSafeFileName(game));
+            string filePath = Path.Combine(folderPath, $"{MakeSafeFileName(gameData.Checksum)}.json");
+
+            Directory.CreateDirectory(folderPath);
+            File.WriteAllText(filePath, JsonConvert.SerializeObject(gameData));
+        }
+
+        static string MakeSafeFileName(string value)
+        {
+            foreach (char c in Path.GetInvalidFileNameChars())
+                value = value.Replace(c.ToString(), string.Empty);
+            return value;
+        }
     }
 }
