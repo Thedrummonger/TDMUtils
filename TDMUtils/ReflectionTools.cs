@@ -415,5 +415,15 @@ namespace TDMUtils
 
             return null;
         }
+
+        public static T[] CreateAllImplementations<T>(params Assembly[]? assemblies) where T : class
+        {
+            var targetType = typeof(T);
+            var source = assemblies?.Length > 0 ? assemblies : AppDomain.CurrentDomain.GetAssemblies();
+
+            return [.. source.SelectMany(a => a.GetTypes())
+                .Where(t => targetType.IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract && t.GetConstructor(Type.EmptyTypes) != null)
+                .Select(Activator.CreateInstance).OfType<T>()];
+        }
     }
 }
